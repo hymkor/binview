@@ -15,8 +15,8 @@ import (
 
 const (
 	CURSOR_COLOR     = "\x1B[0;40;37;1;7m"
-	CELL1_COLOR      = "\x1B[0;44;37;1m"
-	CELL2_COLOR      = "\x1B[0;40;37;1m"
+	CELL1_COLOR      = "\x1B[0;40;37;1m"
+	CELL2_COLOR      = "\x1B[0;40;37m"
 	ERASE_LINE       = "\x1B[0m\x1B[0K"
 	ERASE_SCRN_AFTER = "\x1B[0m\x1B[0J"
 )
@@ -24,7 +24,6 @@ const (
 type LineView struct {
 	Slice     []byte
 	CursorPos int
-	Reverse   bool
 	Out       io.Writer
 }
 
@@ -32,14 +31,17 @@ type LineView struct {
 
 func (v LineView) Draw() {
 	for i, s := range v.Slice {
+		if i > 0 {
+			io.WriteString(v.Out, "\x1B[0m ")
+		}
 		if i == v.CursorPos {
 			io.WriteString(v.Out, CURSOR_COLOR)
-		} else if ((i & 1) == 0) == v.Reverse {
+		} else if ((i >> 2) & 1) == 0 {
 			io.WriteString(v.Out, CELL1_COLOR)
 		} else {
 			io.WriteString(v.Out, CELL2_COLOR)
 		}
-		fmt.Fprintf(v.Out, " %02X", s)
+		fmt.Fprintf(v.Out, "%02X", s)
 	}
 	io.WriteString(v.Out, ERASE_LINE)
 }
@@ -53,7 +55,6 @@ var cache = map[int]string{}
 const CELL_WIDTH = 12
 
 func view(in BinIn, csrpos, csrlin, w, h int, out io.Writer) (int, error) {
-	reverse := false
 	count := 0
 	lfCount := 0
 	for {
@@ -73,9 +74,8 @@ func view(in BinIn, csrpos, csrlin, w, h int, out io.Writer) (int, error) {
 		}
 		var buffer strings.Builder
 		v := LineView{
-			Slice:   record,
-			Reverse: reverse,
-			Out:     &buffer,
+			Slice: record,
+			Out:   &buffer,
 		}
 		if count == csrlin {
 			v.CursorPos = csrpos
@@ -89,7 +89,6 @@ func view(in BinIn, csrpos, csrlin, w, h int, out io.Writer) (int, error) {
 			io.WriteString(out, line)
 			cache[count] = line
 		}
-		reverse = !reverse
 		count++
 	}
 }
