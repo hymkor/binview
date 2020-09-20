@@ -44,17 +44,50 @@ func (v LineView) Draw(address int) {
 		}
 		fmt.Fprintf(v.Out, "%02X", s)
 	}
-	v.Out.Write([]byte{' '})
-	for i, s := range v.Slice {
-		if i == v.CursorPos {
-			io.WriteString(v.Out, CURSOR_COLOR)
+	io.WriteString(v.Out, "\x1B[0m ")
+	for i := len(v.Slice); i < 16; i++ {
+		io.WriteString(v.Out, "   ")
+	}
+
+	for i := 0; i < len(v.Slice); i++ {
+		s := v.Slice[i]
+		length := 0
+		if 0x20 <= s && s <= 0x7E {
+			length = 1
+		} else if 0xC2 <= s && s <= 0xDF {
+			length = 2
+		} else if 0xE0 <= s && s <= 0xEF {
+			length = 3
+		} else if 0xF0 <= s && s <= 0xF4 {
+			length = 4
+		}
+
+		if i+length >= len(v.Slice) {
+			length = 0
 		} else {
-			io.WriteString(v.Out, CELL1_COLOR)
+			for j := 1; j < length; j++ {
+				if c := v.Slice[i+j]; c < 0x80 || c > 0xBF {
+					length = 0
+					break
+				}
+			}
 		}
-		if s < ' ' || s >= 0x7F {
-			s = '.'
+		if length == 0 {
+			if i == v.CursorPos {
+				io.WriteString(v.Out, CURSOR_COLOR)
+			} else {
+				io.WriteString(v.Out, CELL1_COLOR)
+			}
+			io.WriteString(v.Out, ".")
+		} else {
+			if i <= v.CursorPos && v.CursorPos < i+length {
+				io.WriteString(v.Out, CURSOR_COLOR)
+			} else {
+				io.WriteString(v.Out, CELL1_COLOR)
+			}
+			v.Out.Write(v.Slice[i : i+length])
+			i += length - 1
 		}
-		v.Out.Write([]byte{s})
 	}
 	io.WriteString(v.Out, ERASE_LINE)
 }
