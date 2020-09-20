@@ -225,9 +225,8 @@ func main1() error {
 			message = ""
 		} else if 0 <= rowIndex && rowIndex < len(slices) {
 			if 0 <= colIndex && colIndex < len(slices[rowIndex]) {
-				fmt.Fprintf(out, "\x1B[0;33;1m(%d,%d):%02X\x1B[0m",
-					rowIndex+1,
-					colIndex+1,
+				fmt.Fprintf(out, "\x1B[0;33;1m(%08X):%02X\x1B[0m",
+					rowIndex*16+colIndex,
 					slices[rowIndex][colIndex])
 			}
 		}
