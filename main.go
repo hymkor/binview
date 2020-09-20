@@ -15,8 +15,8 @@ import (
 
 const (
 	CURSOR_COLOR     = "\x1B[0;40;37;1;7m"
-	CELL1_COLOR      = "\x1B[0;40;37;1m"
-	CELL2_COLOR      = "\x1B[0;40;37m"
+	CELL1_COLOR      = "\x1B[0;40;37m"
+	CELL2_COLOR      = "\x1B[0;40;37;1m"
 	ERASE_LINE       = "\x1B[0m\x1B[0K"
 	ERASE_SCRN_AFTER = "\x1B[0m\x1B[0J"
 )
@@ -29,7 +29,8 @@ type LineView struct {
 
 // See. en.wikipedia.org/wiki/Unicode_control_characters#Control_pictures
 
-func (v LineView) Draw() {
+func (v LineView) Draw(address int) {
+	fmt.Fprintf(v.Out, "%08X ", address)
 	for i, s := range v.Slice {
 		if i > 0 {
 			io.WriteString(v.Out, "\x1B[0m ")
@@ -48,6 +49,7 @@ func (v LineView) Draw() {
 
 type BinIn interface {
 	Read() ([]byte, error)
+	HomeAddress() int
 }
 
 var cache = map[int]string{}
@@ -57,6 +59,7 @@ const CELL_WIDTH = 12
 func view(in BinIn, csrpos, csrlin, w, h int, out io.Writer) (int, error) {
 	count := 0
 	lfCount := 0
+	homeAddress := in.HomeAddress()
 	for {
 		if count >= h {
 			return lfCount, nil
@@ -83,7 +86,7 @@ func view(in BinIn, csrpos, csrlin, w, h int, out io.Writer) (int, error) {
 			v.CursorPos = -1
 		}
 
-		v.Draw()
+		v.Draw((homeAddress + count) * 16)
 		line := buffer.String()
 		if f := cache[count]; f != line {
 			io.WriteString(out, line)
@@ -95,7 +98,6 @@ func view(in BinIn, csrpos, csrlin, w, h int, out io.Writer) (int, error) {
 
 type MemoryBin struct {
 	Data   [][]byte
-	StartX int
 	StartY int
 }
 
@@ -104,13 +106,12 @@ func (this *MemoryBin) Read() ([]byte, error) {
 		return nil, io.EOF
 	}
 	bin := this.Data[this.StartY]
-	if this.StartX <= len(bin) {
-		bin = bin[this.StartX:]
-	} else {
-		bin = []byte{}
-	}
 	this.StartY++
 	return bin, nil
+}
+
+func (this *MemoryBin) HomeAddress() int {
+	return this.StartY
 }
 
 const (
@@ -195,7 +196,6 @@ func main1() error {
 	colIndex := 0
 	rowIndex := 0
 	startRow := 0
-	startCol := 0
 
 	var lastWidth, lastHeight int
 
@@ -211,10 +211,8 @@ func main1() error {
 			lastHeight = screenHeight
 			io.WriteString(out, _ANSI_CURSOR_OFF)
 		}
-		cols := (screenWidth - 1) / CELL_WIDTH
-
-		window := &MemoryBin{Data: slices, StartX: startCol, StartY: startRow}
-		lf, err := view(window, colIndex-startCol, rowIndex-startRow, screenWidth-1, screenHeight-1, out)
+		window := &MemoryBin{Data: slices, StartY: startRow}
+		lf, err := view(window, colIndex, rowIndex-startRow, screenWidth-1, screenHeight-1, out)
 		if err != nil {
 			return err
 		}
@@ -279,12 +277,6 @@ func main1() error {
 		} else if rowIndex >= startRow+screenHeight-1 {
 			startRow = rowIndex - (screenHeight - 1) + 1
 		}
-		if colIndex < startCol {
-			startCol = colIndex
-		} else if colIndex >= startCol+cols {
-			startCol = colIndex - cols + 1
-		}
-
 		if lf > 0 {
 			fmt.Fprintf(out, "\r\x1B[%dA", lf)
 		} else {
