@@ -2,33 +2,16 @@ package main
 
 import (
 	"bufio"
-	"context"
-	"encoding/csv"
 	"flag"
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/mattn/go-colorable"
 	"github.com/mattn/go-runewidth"
 	"github.com/mattn/go-tty"
-
-	"github.com/zetamatta/go-readline-ny"
 )
-
-func cutStrInWidth(s string, cellwidth int) (string, int) {
-	w := 0
-	for n, c := range s {
-		w1 := runewidth.RuneWidth(c)
-		if w+w1 > cellwidth {
-			return s[:n], w
-		}
-		w += w1
-	}
-	return s, w
-}
 
 const (
 	CURSOR_COLOR     = "\x1B[0;40;37;1;7m"
@@ -39,31 +22,16 @@ const (
 )
 
 type LineView struct {
-	CSV       []string
-	CellWidth int
-	MaxInLine int
+	Slice     []byte
 	CursorPos int
 	Reverse   bool
 	Out       io.Writer
 }
 
-var replaceTable = strings.NewReplacer(
-	"\r", "\u240A",
-	"\x1B", "\u241B",
-	"\n", "\u2936", // arrow pointing downwards then curving leftwards
-	"\t", "\u21E5") // rightwards arrow to bar (rightward tab)
-
 // See. en.wikipedia.org/wiki/Unicode_control_characters#Control_pictures
 
 func (v LineView) Draw() {
-	leftWidth := v.MaxInLine
-	for i, s := range v.CSV {
-		cw := v.CellWidth
-		if cw > leftWidth {
-			cw = leftWidth
-		}
-		s = replaceTable.Replace(s)
-		ss, w := cutStrInWidth(s, cw)
+	for i, s := range v.Slice {
 		if i == v.CursorPos {
 			io.WriteString(v.Out, CURSOR_COLOR)
 		} else if ((i & 1) == 0) == v.Reverse {
@@ -71,28 +39,20 @@ func (v LineView) Draw() {
 		} else {
 			io.WriteString(v.Out, CELL2_COLOR)
 		}
-		io.WriteString(v.Out, ss)
-		leftWidth -= w
-		for i := cw - w; i > 0; i-- {
-			v.Out.Write([]byte{' '})
-			leftWidth--
-		}
-		if leftWidth <= 0 {
-			break
-		}
+		fmt.Fprintf(v.Out, " %02X", s)
 	}
 	io.WriteString(v.Out, ERASE_LINE)
 }
 
-type CsvIn interface {
-	Read() ([]string, error)
+type BinIn interface {
+	Read() ([]byte, error)
 }
 
 var cache = map[int]string{}
 
 const CELL_WIDTH = 12
 
-func view(in CsvIn, csrpos, csrlin, w, h int, out io.Writer) (int, error) {
+func view(in BinIn, csrpos, csrlin, w, h int, out io.Writer) (int, error) {
 	reverse := false
 	count := 0
 	lfCount := 0
@@ -113,11 +73,9 @@ func view(in CsvIn, csrpos, csrlin, w, h int, out io.Writer) (int, error) {
 		}
 		var buffer strings.Builder
 		v := LineView{
-			CSV:       record,
-			CellWidth: CELL_WIDTH,
-			MaxInLine: w,
-			Reverse:   reverse,
-			Out:       &buffer,
+			Slice:   record,
+			Reverse: reverse,
+			Out:     &buffer,
 		}
 		if count == csrlin {
 			v.CursorPos = csrpos
@@ -136,24 +94,24 @@ func view(in CsvIn, csrpos, csrlin, w, h int, out io.Writer) (int, error) {
 	}
 }
 
-type MemoryCsv struct {
-	Data   [][]string
+type MemoryBin struct {
+	Data   [][]byte
 	StartX int
 	StartY int
 }
 
-func (this *MemoryCsv) Read() ([]string, error) {
+func (this *MemoryBin) Read() ([]byte, error) {
 	if this.StartY >= len(this.Data) {
 		return nil, io.EOF
 	}
-	csv := this.Data[this.StartY]
-	if this.StartX <= len(csv) {
-		csv = csv[this.StartX:]
+	bin := this.Data[this.StartY]
+	if this.StartX <= len(bin) {
+		bin = bin[this.StartX:]
 	} else {
-		csv = []string{}
+		bin = []byte{}
 	}
 	this.StartY++
-	return csv, nil
+	return bin, nil
 }
 
 const (
@@ -179,19 +137,12 @@ const (
 	_KEY_F2     = "\x1B[OQ"
 )
 
-func cat(in io.Reader, out io.Writer) {
-	sc := bufio.NewScanner(in)
-	for sc.Scan() {
-		fmt.Fprintln(out, textfilter(sc.Text()))
-	}
-}
-
 func getIn() io.ReadCloser {
 	pin, pout := io.Pipe()
 	go func() {
 		args := flag.Args()
 		if len(args) <= 0 {
-			cat(os.Stdin, pout)
+			io.Copy(pout, os.Stdin)
 		} else {
 			for _, arg1 := range args {
 				in, err := os.Open(arg1)
@@ -199,72 +150,13 @@ func getIn() io.ReadCloser {
 					fmt.Fprintf(pout, "\"%s\",\"not found\"\n", arg1)
 					continue
 				}
-				cat(in, pout)
+				io.Copy(pout, in)
 				in.Close()
 			}
 		}
 		pout.Close()
 	}()
 	return pin
-}
-
-var optionTsv = flag.Bool("t", false, "use TAB as field-separator")
-var optionCsv = flag.Bool("c", false, "use Comma as field-separator")
-
-func searchForward(csvlines [][]string, r, c int, target string) (bool, int, int) {
-	c++
-	for r < len(csvlines) {
-		for c < len(csvlines[r]) {
-			if strings.Contains(csvlines[r][c], target) {
-				return true, r, c
-			}
-			c++
-		}
-		r++
-		c = 0
-	}
-	return false, r, c
-}
-
-func searchBackward(csvlines [][]string, r, c int, target string) (bool, int, int) {
-	c--
-	for {
-		for c >= 0 {
-			if strings.Contains(csvlines[r][c], target) {
-				return true, r, c
-			}
-			c--
-		}
-		r--
-		if r < 0 {
-			return false, r, c
-		}
-		c = len(csvlines[r]) - 1
-	}
-}
-
-func getline(out io.Writer, prompt string, defaultStr string) (string, error) {
-	editor := readline.Editor{
-		Writer:  out,
-		Default: defaultStr,
-		Cursor:  65535,
-		Prompt: func() (int, error) {
-			fmt.Fprintf(out, "\r\x1B[0;33;40;1m%s%s", prompt, ERASE_LINE)
-			return 2, nil
-		},
-		LineFeed: func(readline.Result) {},
-	}
-	defer io.WriteString(out, _ANSI_CURSOR_OFF)
-	editor.BindKeySymbol(readline.K_ESCAPE, readline.F_INTR)
-	return editor.ReadLine(context.Background())
-}
-
-type WriteNopCloser struct {
-	io.Writer
-}
-
-func (*WriteNopCloser) Close() error {
-	return nil
 }
 
 func main1() error {
@@ -276,31 +168,22 @@ func main1() error {
 	pin := getIn()
 	defer pin.Close()
 
-	in := csv.NewReader(pin)
-	in.FieldsPerRecord = -1
-	args := flag.Args()
-	if len(args) >= 1 && !strings.HasSuffix(strings.ToLower(args[0]), ".csv") {
-		in.Comma = '\t'
-	}
-	if *optionTsv {
-		in.Comma = '\t'
-	}
-	if *optionCsv {
-		in.Comma = ','
-	}
-
-	csvlines := [][]string{}
+	in := bufio.NewReader(pin)
+	slices := [][]byte{}
 	for {
-		csv1, err := in.Read()
+		var slice1 [16]byte
+		n, err := in.Read(slice1[:])
+		if n > 0 {
+			slices = append(slices, slice1[:n])
+		}
 		if err != nil {
 			if err != io.EOF {
 				return err
 			}
 			break
 		}
-		csvlines = append(csvlines, csv1)
 	}
-	if len(csvlines) <= 0 {
+	if len(slices) <= 0 {
 		return io.EOF
 	}
 	tty1, err := tty.Open()
@@ -315,9 +198,6 @@ func main1() error {
 	startRow := 0
 	startCol := 0
 
-	lastSearch := searchForward
-	lastSearchRev := searchBackward
-	lastWord := ""
 	var lastWidth, lastHeight int
 
 	message := ""
@@ -334,7 +214,7 @@ func main1() error {
 		}
 		cols := (screenWidth - 1) / CELL_WIDTH
 
-		window := &MemoryCsv{Data: csvlines, StartX: startCol, StartY: startRow}
+		window := &MemoryBin{Data: slices, StartX: startCol, StartY: startRow}
 		lf, err := view(window, colIndex-startCol, rowIndex-startRow, screenWidth-1, screenHeight-1, out)
 		if err != nil {
 			return err
@@ -346,12 +226,12 @@ func main1() error {
 			io.WriteString(out, runewidth.Truncate(message, screenWidth-1, ""))
 			io.WriteString(out, _ANSI_RESET)
 			message = ""
-		} else if 0 <= rowIndex && rowIndex < len(csvlines) {
-			if 0 <= colIndex && colIndex < len(csvlines[rowIndex]) {
-				fmt.Fprintf(out, "\x1B[0;33;1m(%d,%d):%s\x1B[0m",
+		} else if 0 <= rowIndex && rowIndex < len(slices) {
+			if 0 <= colIndex && colIndex < len(slices[rowIndex]) {
+				fmt.Fprintf(out, "\x1B[0;33;1m(%d,%d):%02X\x1B[0m",
 					rowIndex+1,
 					colIndex+1,
-					runewidth.Truncate(replaceTable.Replace(csvlines[rowIndex][colIndex]), screenWidth-11, "..."))
+					slices[rowIndex][colIndex])
 			}
 		}
 		fmt.Fprint(out, ERASE_SCRN_AFTER)
@@ -369,7 +249,7 @@ func main1() error {
 				return nil
 			}
 		case "j", _KEY_DOWN, _KEY_CTRL_N:
-			if rowIndex < len(csvlines)-1 {
+			if rowIndex < len(slices)-1 {
 				rowIndex++
 			}
 		case "k", _KEY_UP, _KEY_CTRL_P:
@@ -385,143 +265,14 @@ func main1() error {
 		case "0", "^", _KEY_CTRL_A:
 			colIndex = 0
 		case "$", _KEY_CTRL_E:
-			colIndex = len(csvlines[rowIndex]) - 1
+			colIndex = len(slices[rowIndex]) - 1
 		case "<":
 			rowIndex = 0
 		case ">":
-			rowIndex = len(csvlines) - 1
-		case "n":
-			if lastWord == "" {
-				break
-			}
-			found, r, c := lastSearch(csvlines, rowIndex, colIndex, lastWord)
-			if !found {
-				message = fmt.Sprintf("%s: not found", lastWord)
-				break
-			}
-			rowIndex = r
-			colIndex = c
-		case "N":
-			if lastWord == "" {
-				break
-			}
-			found, r, c := lastSearchRev(csvlines, rowIndex, colIndex, lastWord)
-			if !found {
-				message = fmt.Sprintf("%s: not found", lastWord)
-				break
-			}
-			rowIndex = r
-			colIndex = c
-		case "/", "?":
-			var err error
-			lastWord, err = getline(out, ch, "")
-			if err != nil {
-				if err != readline.CtrlC {
-					message = err.Error()
-				}
-				break
-			}
-			if ch == "/" {
-				lastSearch = searchForward
-				lastSearchRev = searchBackward
-			} else {
-				lastSearch = searchBackward
-				lastSearchRev = searchForward
-			}
-			found, r, c := lastSearch(csvlines, rowIndex, colIndex, lastWord)
-			if !found {
-				message = fmt.Sprintf("%s: not found", lastWord)
-				break
-			}
-			rowIndex = r
-			colIndex = c
-		case "o":
-			if rowIndex > len(csvlines)-1 {
-				break
-			}
-			rowIndex++
-			fallthrough
-		case "O":
-			csvlines = append(csvlines, []string{})
-			if len(csvlines) >= rowIndex+1 {
-				copy(csvlines[rowIndex+1:], csvlines[rowIndex:])
-				csvlines[rowIndex] = []string{""}
-			}
-			break
-		case "D":
-			if len(csvlines) <= 1 {
-				break
-			}
-			copy(csvlines[rowIndex:], csvlines[rowIndex+1:])
-			csvlines = csvlines[:len(csvlines)-1]
-			if rowIndex >= len(csvlines) {
-				rowIndex--
-			}
-			break
-		case "i":
-			text, err := getline(out, "insert cell>", "")
-			if err != nil {
-				break
-			}
-			csvlines[rowIndex] = append(csvlines[rowIndex], "")
-			copy(csvlines[rowIndex][colIndex+1:], csvlines[rowIndex][colIndex:])
-			csvlines[rowIndex][colIndex] = text
-			colIndex++
-		case "a":
-			text, err := getline(out, "append cell>", "")
-			if err != nil {
-				break
-			}
-			csvlines[rowIndex] = append(csvlines[rowIndex], "")
-			colIndex++
-			copy(csvlines[rowIndex][colIndex+1:], csvlines[rowIndex][colIndex:])
-			csvlines[rowIndex][colIndex] = text
-		case "r", "R", _KEY_F2:
-			text, err := getline(out, "replace cell>", csvlines[rowIndex][colIndex])
-			if err != nil {
-				break
-			}
-			csvlines[rowIndex][colIndex] = text
-		case "d":
-			if len(csvlines[rowIndex]) <= 1 {
-				csvlines[rowIndex][0] = ""
-			} else {
-				copy(csvlines[rowIndex][colIndex:], csvlines[rowIndex][colIndex+1:])
-				csvlines[rowIndex] = csvlines[rowIndex][:len(csvlines[rowIndex])-1]
-			}
-		case "w":
-			fname := "-"
-			var err error
-			if len(args) >= 1 {
-				fname, err = filepath.Abs(args[0])
-				if err != nil {
-					message = err.Error()
-					break
-				}
-			}
-			fname, err = getline(out, "write to>", fname)
-			if err != nil {
-				break
-			}
-			var fd io.WriteCloser
-			if fname == "-" {
-				fd = &WriteNopCloser{Writer: os.Stdout}
-			} else {
-				fd, err = os.OpenFile(fname, os.O_EXCL|os.O_CREATE, 0666)
-				if err != nil {
-					message = err.Error()
-					break
-				}
-			}
-			w := csv.NewWriter(fd)
-			w.Comma = in.Comma
-			w.UseCRLF = true
-			w.WriteAll(csvlines)
-			w.Flush()
-			fd.Close()
+			rowIndex = len(slices) - 1
 		}
-		if colIndex >= len(csvlines[rowIndex]) {
-			colIndex = len(csvlines[rowIndex]) - 1
+		if colIndex >= len(slices[rowIndex]) {
+			colIndex = len(slices[rowIndex]) - 1
 		}
 
 		if rowIndex < startRow {
