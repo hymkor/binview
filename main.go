@@ -44,6 +44,18 @@ func (v LineView) Draw(address int) {
 		}
 		fmt.Fprintf(v.Out, "%02X", s)
 	}
+	v.Out.Write([]byte{' '})
+	for i, s := range v.Slice {
+		if i == v.CursorPos {
+			io.WriteString(v.Out, CURSOR_COLOR)
+		} else {
+			io.WriteString(v.Out, CELL1_COLOR)
+		}
+		if s < ' ' || s >= 0x7F {
+			s = '.'
+		}
+		v.Out.Write([]byte{s})
+	}
 	io.WriteString(v.Out, ERASE_LINE)
 }
 
