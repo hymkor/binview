@@ -210,7 +210,11 @@ func readAsSlices(in io.Reader) ([][]byte, error) {
 }
 
 func main1() error {
-	out := colorable.NewColorableStderr()
+	disable := colorable.EnableColorsStdout(nil)
+	if disable != nil {
+		defer disable()
+	}
+	out := colorable.NewColorableStdout()
 
 	io.WriteString(out, _ANSI_CURSOR_OFF)
 	defer io.WriteString(out, _ANSI_CURSOR_ON)
