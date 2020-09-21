@@ -182,35 +182,16 @@ const (
 	_KEY_F2     = "\x1B[OQ"
 )
 
-func getIn() io.ReadCloser {
-	pin, pout := io.Pipe()
-	go func() {
-		args := flag.Args()
-		if len(args) <= 0 {
-			io.Copy(pout, os.Stdin)
-		} else {
-			for _, arg1 := range args {
-				in, err := os.Open(arg1)
-				if err != nil {
-					fmt.Fprintf(pout, "\"%s\",\"not found\"\n", arg1)
-					continue
-				}
-				io.Copy(pout, in)
-				in.Close()
-			}
-		}
-		pout.Close()
-	}()
-	return pin
-}
-
 func main1() error {
 	out := colorable.NewColorableStderr()
 
 	io.WriteString(out, _ANSI_CURSOR_OFF)
 	defer io.WriteString(out, _ANSI_CURSOR_ON)
 
-	pin := getIn()
+	pin, err := NewArgf(os.Args[1:])
+	if err != nil {
+		return err
+	}
 	defer pin.Close()
 
 	in := bufio.NewReader(pin)
