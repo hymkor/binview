@@ -87,6 +87,11 @@ func (v LineView) Draw(address int) {
 			}
 			v.Out.Write(v.Slice[i : i+length])
 			i += length - 1
+			if length == 3 {
+				io.WriteString(v.Out, " ")
+			} else if length == 4 {
+				io.WriteString(v.Out, "  ")
+			}
 		}
 	}
 	io.WriteString(v.Out, ERASE_LINE)
