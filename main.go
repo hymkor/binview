@@ -191,6 +191,24 @@ const (
 	_KEY_F2     = "\x1B[OQ"
 )
 
+func readAsSlices(in io.Reader) ([][]byte, error) {
+	r := bufio.NewReader(in)
+	slices := [][]byte{}
+	for {
+		var slice1 [16]byte
+		n, err := r.Read(slice1[:])
+		if n > 0 {
+			slices = append(slices, slice1[:n])
+		}
+		if err == io.EOF {
+			return slices, nil
+		}
+		if err != nil {
+			return slices, err
+		}
+	}
+}
+
 func main1() error {
 	out := colorable.NewColorableStderr()
 
@@ -203,29 +221,18 @@ func main1() error {
 	}
 	defer pin.Close()
 
-	in := bufio.NewReader(pin)
-	slices := [][]byte{}
-	for {
-		var slice1 [16]byte
-		n, err := in.Read(slice1[:])
-		if n > 0 {
-			slices = append(slices, slice1[:n])
-		}
-		if err != nil {
-			if err != io.EOF {
-				return err
-			}
-			break
-		}
+	slices, err := readAsSlices(pin)
+	if err != nil {
+		return err
 	}
 	if len(slices) <= 0 {
 		return io.EOF
 	}
+
 	tty1, err := tty.Open()
 	if err != nil {
 		return err
 	}
-
 	defer tty1.Close()
 
 	colIndex := 0
