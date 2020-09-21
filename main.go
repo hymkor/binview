@@ -30,27 +30,31 @@ type LineView struct {
 // See. en.wikipedia.org/wiki/Unicode_control_characters#Control_pictures
 
 func (v LineView) Draw(address int) {
-	fmt.Fprintf(v.Out, "%08X ", address)
-	for i, s := range v.Slice {
+	draw(v.Out, address, v.CursorPos, v.Slice)
+}
+
+func draw(out io.Writer, address int, cursorPos int, slice []byte) {
+	fmt.Fprintf(out, "%08X ", address)
+	for i, s := range slice {
 		if i > 0 {
-			io.WriteString(v.Out, "\x1B[0m ")
+			io.WriteString(out, "\x1B[0m ")
 		}
-		if i == v.CursorPos {
-			io.WriteString(v.Out, CURSOR_COLOR)
+		if i == cursorPos {
+			io.WriteString(out, CURSOR_COLOR)
 		} else if ((i >> 2) & 1) == 0 {
-			io.WriteString(v.Out, CELL1_COLOR)
+			io.WriteString(out, CELL1_COLOR)
 		} else {
-			io.WriteString(v.Out, CELL2_COLOR)
+			io.WriteString(out, CELL2_COLOR)
 		}
-		fmt.Fprintf(v.Out, "%02X", s)
+		fmt.Fprintf(out, "%02X", s)
 	}
-	io.WriteString(v.Out, "\x1B[0m ")
-	for i := len(v.Slice); i < 16; i++ {
-		io.WriteString(v.Out, "   ")
+	io.WriteString(out, "\x1B[0m ")
+	for i := len(slice); i < 16; i++ {
+		io.WriteString(out, "   ")
 	}
 
-	for i := 0; i < len(v.Slice); i++ {
-		s := v.Slice[i]
+	for i := 0; i < len(slice); i++ {
+		s := slice[i]
 		length := 0
 		if 0x20 <= s && s <= 0x7E {
 			length = 1
@@ -62,39 +66,39 @@ func (v LineView) Draw(address int) {
 			length = 4
 		}
 
-		if i+length >= len(v.Slice) {
+		if i+length >= len(slice) {
 			length = 0
 		} else {
 			for j := 1; j < length; j++ {
-				if c := v.Slice[i+j]; c < 0x80 || c > 0xBF {
+				if c := slice[i+j]; c < 0x80 || c > 0xBF {
 					length = 0
 					break
 				}
 			}
 		}
 		if length == 0 {
-			if i == v.CursorPos {
-				io.WriteString(v.Out, CURSOR_COLOR)
+			if i == cursorPos {
+				io.WriteString(out, CURSOR_COLOR)
 			} else {
-				io.WriteString(v.Out, CELL1_COLOR)
+				io.WriteString(out, CELL1_COLOR)
 			}
-			io.WriteString(v.Out, ".")
+			io.WriteString(out, ".")
 		} else {
-			if i <= v.CursorPos && v.CursorPos < i+length {
-				io.WriteString(v.Out, CURSOR_COLOR)
+			if i <= cursorPos && cursorPos < i+length {
+				io.WriteString(out, CURSOR_COLOR)
 			} else {
-				io.WriteString(v.Out, CELL1_COLOR)
+				io.WriteString(out, CELL1_COLOR)
 			}
-			v.Out.Write(v.Slice[i : i+length])
+			out.Write(slice[i : i+length])
 			i += length - 1
 			if length == 3 {
-				io.WriteString(v.Out, " ")
+				io.WriteString(out, " ")
 			} else if length == 4 {
-				io.WriteString(v.Out, "  ")
+				io.WriteString(out, "  ")
 			}
 		}
 	}
-	io.WriteString(v.Out, ERASE_LINE)
+	io.WriteString(out, ERASE_LINE)
 }
 
 type BinIn interface {
