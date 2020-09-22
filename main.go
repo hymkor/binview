@@ -21,17 +21,7 @@ const (
 	ERASE_SCRN_AFTER = "\x1B[0m\x1B[0J"
 )
 
-type LineView struct {
-	Slice     []byte
-	CursorPos int
-	Out       io.Writer
-}
-
 // See. en.wikipedia.org/wiki/Unicode_control_characters#Control_pictures
-
-func (v LineView) Draw(address int) {
-	draw(v.Out, address, v.CursorPos, v.Slice)
-}
 
 func draw(out io.Writer, address int, cursorPos int, slice []byte) {
 	fmt.Fprintf(out, "%08X ", address)
@@ -129,18 +119,14 @@ func view(in BinIn, csrpos, csrlin, w, h int, out io.Writer) (int, error) {
 			lfCount++
 			fmt.Fprintln(out, "\r") // "\r" is for Linux and go-tty
 		}
-		var buffer strings.Builder
-		v := LineView{
-			Slice: record,
-			Out:   &buffer,
-		}
+		var cursorPos int
 		if count == csrlin {
-			v.CursorPos = csrpos
+			cursorPos = csrpos
 		} else {
-			v.CursorPos = -1
+			cursorPos = -1
 		}
-
-		v.Draw((homeAddress + count) * 16)
+		var buffer strings.Builder
+		draw(&buffer, (homeAddress+count)*16, cursorPos, record)
 		line := buffer.String()
 		if f := cache[count]; f != line {
 			io.WriteString(out, line)
