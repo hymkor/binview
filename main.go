@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -305,7 +304,6 @@ func main1() error {
 }
 
 func main() {
-	flag.Parse()
 	if err := main1(); err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
