@@ -153,24 +153,6 @@ const (
 	_KEY_F2     = "\x1B[OQ"
 )
 
-func readAsSlices(in io.Reader) ([][]byte, error) {
-	r := bufio.NewReader(in)
-	slices := [][]byte{}
-	for {
-		var slice1 [16]byte
-		n, err := r.Read(slice1[:])
-		if n > 0 {
-			slices = append(slices, slice1[:n])
-		}
-		if err == io.EOF {
-			return slices, nil
-		}
-		if err != nil {
-			return slices, err
-		}
-	}
-}
-
 func main1() error {
 	disable := colorable.EnableColorsStdout(nil)
 	if disable != nil {
@@ -187,13 +169,8 @@ func main1() error {
 	}
 	defer pin.Close()
 
-	slices, err := readAsSlices(pin)
-	if err != nil {
-		return err
-	}
-	if len(slices) <= 0 {
-		return io.EOF
-	}
+	slices := [][]byte{}
+	reader := bufio.NewReader(pin)
 
 	tty1, err := tty.Open()
 	if err != nil {
@@ -222,7 +199,17 @@ func main1() error {
 		y := startRow
 		fetch := func() ([]byte, int, error) {
 			if y >= len(slices) {
-				return nil, 0, io.EOF
+				if reader == nil {
+					return nil, y * 16, io.EOF
+				}
+				var slice1 [16]byte
+				n, err := reader.Read(slice1[:])
+				if n > 0 {
+					slices = append(slices, slice1[:n])
+				}
+				if err != nil {
+					reader = nil
+				}
 			}
 			bin := slices[y]
 			y++
@@ -263,6 +250,8 @@ func main1() error {
 		case "j", _KEY_DOWN, _KEY_CTRL_N:
 			if rowIndex < len(slices)-1 {
 				rowIndex++
+			} else if _, _, err := fetch(); err == nil {
+				rowIndex++
 			}
 		case "k", _KEY_UP, _KEY_CTRL_P:
 			if rowIndex > 0 {
@@ -280,8 +269,23 @@ func main1() error {
 			colIndex = len(slices[rowIndex]) - 1
 		case "<":
 			rowIndex = 0
+			colIndex = 0
 		case ">":
+			if reader != nil {
+				for {
+					var data [16]byte
+					n, err := reader.Read(data[:])
+					if n > 0 {
+						slices = append(slices, data[:n])
+					}
+					if err != nil {
+						break
+					}
+				}
+			}
 			rowIndex = len(slices) - 1
+			colIndex = len(slices[rowIndex]) - 1
+			reader = nil
 		}
 		if colIndex >= len(slices[rowIndex]) {
 			colIndex = len(slices[rowIndex]) - 1
