@@ -93,17 +93,15 @@ func draw(out io.Writer, address int, cursorPos int, slice []byte) {
 
 type BinIn interface {
 	Read() ([]byte, error)
-	HomeAddress() int
 }
 
 var cache = map[int]string{}
 
 const CELL_WIDTH = 12
 
-func view(in BinIn, csrpos, csrlin, w, h int, out io.Writer) (int, error) {
+func view(in BinIn, address, csrpos, csrlin, w, h int, out io.Writer) (int, error) {
 	count := 0
 	lfCount := 0
-	homeAddress := in.HomeAddress()
 	for {
 		if count >= h {
 			return lfCount, nil
@@ -126,7 +124,7 @@ func view(in BinIn, csrpos, csrlin, w, h int, out io.Writer) (int, error) {
 			cursorPos = -1
 		}
 		var buffer strings.Builder
-		draw(&buffer, (homeAddress+count)*16, cursorPos, record)
+		draw(&buffer, (address+count)*16, cursorPos, record)
 		line := buffer.String()
 		if f := cache[count]; f != line {
 			io.WriteString(out, line)
@@ -148,10 +146,6 @@ func (this *MemoryBin) Read() ([]byte, error) {
 	bin := this.Data[this.StartY]
 	this.StartY++
 	return bin, nil
-}
-
-func (this *MemoryBin) HomeAddress() int {
-	return this.StartY
 }
 
 const (
@@ -244,7 +238,7 @@ func main1() error {
 			io.WriteString(out, _ANSI_CURSOR_OFF)
 		}
 		window := &MemoryBin{Data: slices, StartY: startRow}
-		lf, err := view(window, colIndex, rowIndex-startRow, screenWidth-1, screenHeight-1, out)
+		lf, err := view(window, startRow, colIndex, rowIndex-startRow, screenWidth-1, screenHeight-1, out)
 		if err != nil {
 			return err
 		}
