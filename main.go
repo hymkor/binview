@@ -210,6 +210,9 @@ func main1() error {
 					reader = nil
 				}
 			}
+			if y >= len(slices) {
+				return nil, 0, io.EOF
+			}
 			bin := slices[y]
 			y++
 			return bin, y * 16, nil
