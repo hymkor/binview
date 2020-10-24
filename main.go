@@ -13,31 +13,43 @@ import (
 )
 
 const (
-	CURSOR_COLOR     = "\x1B[0;40;37;1;7m"
-	CELL1_COLOR      = "\x1B[0;40;37m"
-	CELL2_COLOR      = "\x1B[0;40;37;1m"
-	ERASE_LINE       = "\x1B[0m\x1B[0K"
-	ERASE_SCRN_AFTER = "\x1B[0m\x1B[0J"
+	CURSOR_COLOR_ON  = "\x1B[37;40;1;7m"
+	CURSOR_COLOR_OFF = "\x1B[27;22m"
+	CELL1_COLOR_ON   = "\x1B[37;40;22m"
+	CELL1_COLOR_OFF  = ""
+	CELL2_COLOR_ON   = "\x1B[37;40;1m"
+	CELL2_COLOR_OFF  = "\x1B[22m"
+	ERASE_LINE       = "\x1B[0K"
+	ERASE_SCRN_AFTER = "\x1B[0J"
 )
 
 // See. en.wikipedia.org/wiki/Unicode_control_characters#Control_pictures
 
 func draw(out io.Writer, address int, cursorPos int, slice []byte) {
-	fmt.Fprintf(out, "%08X ", address)
+	if cursorPos >= 0 {
+		io.WriteString(out, _ANSI_UNDERLINE_ON)
+		defer io.WriteString(out, _ANSI_UNDERLINE_OFF)
+	}
+	fmt.Fprintf(out, "%s%08X%s ", CELL2_COLOR_ON, address, CELL2_COLOR_OFF)
 	for i, s := range slice {
 		if i > 0 {
-			io.WriteString(out, "\x1B[0m ")
+			io.WriteString(out, " ")
 		}
+		var off string
 		if i == cursorPos {
-			io.WriteString(out, CURSOR_COLOR)
+			io.WriteString(out, CURSOR_COLOR_ON)
+			off = CURSOR_COLOR_OFF
 		} else if ((i >> 2) & 1) == 0 {
-			io.WriteString(out, CELL1_COLOR)
+			io.WriteString(out, CELL1_COLOR_ON)
+			off = CELL1_COLOR_OFF
 		} else {
-			io.WriteString(out, CELL2_COLOR)
+			io.WriteString(out, CELL2_COLOR_ON)
+			off = CELL2_COLOR_OFF
 		}
 		fmt.Fprintf(out, "%02X", s)
+		io.WriteString(out, off)
 	}
-	io.WriteString(out, "\x1B[0m ")
+	io.WriteString(out, " ")
 	for i := len(slice); i < 16; i++ {
 		io.WriteString(out, "   ")
 	}
@@ -65,20 +77,27 @@ func draw(out io.Writer, address int, cursorPos int, slice []byte) {
 				}
 			}
 		}
+		var off string
 		if length == 0 {
 			if i == cursorPos {
-				io.WriteString(out, CURSOR_COLOR)
+				io.WriteString(out, CURSOR_COLOR_ON)
+				off = CURSOR_COLOR_OFF
 			} else {
-				io.WriteString(out, CELL1_COLOR)
+				io.WriteString(out, CELL1_COLOR_ON)
+				off = CELL1_COLOR_OFF
 			}
 			io.WriteString(out, ".")
+			io.WriteString(out, off)
 		} else {
 			if i <= cursorPos && cursorPos < i+length {
-				io.WriteString(out, CURSOR_COLOR)
+				io.WriteString(out, CURSOR_COLOR_ON)
+				off = CURSOR_COLOR_OFF
 			} else {
-				io.WriteString(out, CELL1_COLOR)
+				io.WriteString(out, CELL1_COLOR_ON)
+				off = CELL1_COLOR_OFF
 			}
 			out.Write(slice[i : i+length])
+			io.WriteString(out, off)
 			i += length - 1
 			if length == 3 {
 				io.WriteString(out, " ")
@@ -130,10 +149,12 @@ func view(fetch func() ([]byte, int, error), csrpos, csrlin, w, h int, out io.Wr
 }
 
 const (
-	_ANSI_CURSOR_OFF = "\x1B[?25l"
-	_ANSI_CURSOR_ON  = "\x1B[?25h"
-	_ANSI_YELLOW     = "\x1B[0;33;1m"
-	_ANSI_RESET      = "\x1B[0m"
+	_ANSI_CURSOR_OFF    = "\x1B[?25l"
+	_ANSI_CURSOR_ON     = "\x1B[?25h"
+	_ANSI_YELLOW        = "\x1B[0;33;1m"
+	_ANSI_RESET         = "\x1B[0m"
+	_ANSI_UNDERLINE_ON  = "\x1B[4m"
+	_ANSI_UNDERLINE_OFF = "\x1B[24m"
 )
 
 const (
