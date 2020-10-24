@@ -221,6 +221,9 @@ func main1() error {
 		if err != nil {
 			return err
 		}
+		if len(slices) <= 0 {
+			return nil
+		}
 		fmt.Fprintln(out, "\r") // \r is for Linux & go-tty
 		lf++
 		if message != "" {
