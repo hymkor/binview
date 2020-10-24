@@ -215,7 +215,7 @@ func main1() error {
 			}
 			bin := slices[y]
 			y++
-			return bin, y * 16, nil
+			return bin, (y - 1) * 16, nil
 		}
 		lf, err := view(fetch, colIndex, rowIndex-startRow, screenWidth-1, screenHeight-1, out)
 		if err != nil {
