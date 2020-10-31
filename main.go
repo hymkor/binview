@@ -23,6 +23,8 @@ const (
 	ERASE_SCRN_AFTER = "\x1B[0J"
 )
 
+const LINE_SIZE = 16
+
 // See. en.wikipedia.org/wiki/Unicode_control_characters#Control_pictures
 
 func draw(out io.Writer, address int, cursorPos int, slice []byte) {
@@ -50,7 +52,7 @@ func draw(out io.Writer, address int, cursorPos int, slice []byte) {
 		io.WriteString(out, off)
 	}
 	io.WriteString(out, " ")
-	for i := len(slice); i < 16; i++ {
+	for i := len(slice); i < LINE_SIZE; i++ {
 		io.WriteString(out, "   ")
 	}
 
@@ -220,9 +222,9 @@ func main1() error {
 		fetch := func() ([]byte, int, error) {
 			if y >= len(slices) {
 				if reader == nil {
-					return nil, y * 16, io.EOF
+					return nil, y * LINE_SIZE, io.EOF
 				}
-				var slice1 [16]byte
+				var slice1 [LINE_SIZE]byte
 				n, err := reader.Read(slice1[:])
 				if n > 0 {
 					slices = append(slices, slice1[:n])
@@ -236,7 +238,7 @@ func main1() error {
 			}
 			bin := slices[y]
 			y++
-			return bin, (y - 1) * 16, nil
+			return bin, (y - 1) * LINE_SIZE, nil
 		}
 		lf, err := view(fetch, colIndex, rowIndex-startRow, screenWidth-1, screenHeight-1, out)
 		if err != nil {
@@ -255,7 +257,7 @@ func main1() error {
 		} else if 0 <= rowIndex && rowIndex < len(slices) {
 			if 0 <= colIndex && colIndex < len(slices[rowIndex]) {
 				fmt.Fprintf(out, "\x1B[0;33;1m(%08X):%02X\x1B[0m",
-					rowIndex*16+colIndex,
+					rowIndex*LINE_SIZE+colIndex,
 					slices[rowIndex][colIndex])
 			}
 		}
@@ -299,7 +301,7 @@ func main1() error {
 		case ">":
 			if reader != nil {
 				for {
-					var data [16]byte
+					var data [LINE_SIZE]byte
 					n, err := reader.Read(data[:])
 					if n > 0 {
 						slices = append(slices, data[:n])
