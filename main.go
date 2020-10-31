@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/mattn/go-colorable"
 	"github.com/mattn/go-runewidth"
@@ -34,79 +35,49 @@ func draw(out io.Writer, address int, cursorPos int, slice []byte) {
 	}
 	fmt.Fprintf(out, "%s%08X%s ", CELL2_COLOR_ON, address, CELL2_COLOR_OFF)
 	for i, s := range slice {
+		var fieldSeperator string
 		if i > 0 {
-			io.WriteString(out, " ")
+			fieldSeperator = " "
 		}
-		var off string
+		var on, off string
 		if i == cursorPos {
-			io.WriteString(out, CURSOR_COLOR_ON)
+			on = CURSOR_COLOR_ON
 			off = CURSOR_COLOR_OFF
 		} else if ((i >> 2) & 1) == 0 {
-			io.WriteString(out, CELL1_COLOR_ON)
+			on = CELL1_COLOR_ON
 			off = CELL1_COLOR_OFF
 		} else {
-			io.WriteString(out, CELL2_COLOR_ON)
+			on = CELL2_COLOR_ON
 			off = CELL2_COLOR_OFF
 		}
-		fmt.Fprintf(out, "%02X", s)
-		io.WriteString(out, off)
+		fmt.Fprintf(out, "%s%s%02X%s", fieldSeperator, on, s, off)
 	}
 	io.WriteString(out, " ")
 	for i := len(slice); i < LINE_SIZE; i++ {
 		io.WriteString(out, "   ")
 	}
 
-	for i := 0; i < len(slice); i++ {
-		s := slice[i]
-		length := 0
-		if 0x20 <= s && s <= 0x7E {
+	for i := 0; i < len(slice); {
+		c, length := utf8.DecodeRune(slice[i:])
+		if c == utf8.RuneError || c < ' ' {
+			c = '.'
 			length = 1
-		} else if 0xC2 <= s && s <= 0xDF {
-			length = 2
-		} else if 0xE0 <= s && s <= 0xEF {
-			length = 3
-		} else if 0xF0 <= s && s <= 0xF4 {
-			length = 4
 		}
-
-		if i+length >= len(slice) {
-			length = 0
+		var on, off, padding string
+		if i <= cursorPos && cursorPos < i+length {
+			on = CURSOR_COLOR_ON
+			off = CURSOR_COLOR_OFF
 		} else {
-			for j := 1; j < length; j++ {
-				if c := slice[i+j]; c < 0x80 || c > 0xBF {
-					length = 0
-					break
-				}
-			}
+			on = CELL1_COLOR_ON
+			off = CELL1_COLOR_OFF
 		}
-		var off string
-		if length == 0 {
-			if i == cursorPos {
-				io.WriteString(out, CURSOR_COLOR_ON)
-				off = CURSOR_COLOR_OFF
-			} else {
-				io.WriteString(out, CELL1_COLOR_ON)
-				off = CELL1_COLOR_OFF
-			}
-			io.WriteString(out, ".")
-			io.WriteString(out, off)
-		} else {
-			if i <= cursorPos && cursorPos < i+length {
-				io.WriteString(out, CURSOR_COLOR_ON)
-				off = CURSOR_COLOR_OFF
-			} else {
-				io.WriteString(out, CELL1_COLOR_ON)
-				off = CELL1_COLOR_OFF
-			}
-			out.Write(slice[i : i+length])
-			io.WriteString(out, off)
-			i += length - 1
-			if length == 3 {
-				io.WriteString(out, " ")
-			} else if length == 4 {
-				io.WriteString(out, "  ")
-			}
+		if length == 3 {
+			padding = " "
+		} else if length == 4 {
+			padding = "  "
 		}
+		fmt.Fprintf(out, "%s%c%s%s", on, c, off, padding)
+		i += length
 	}
 	io.WriteString(out, ERASE_LINE)
 }
