@@ -295,7 +295,7 @@ func mains(args []string) error {
 		case "x":
 			if colIndex < LINE_SIZE {
 				csrline := slices[rowIndex]
-				copy(csrline[colIndex+1:], csrline[colIndex:])
+				copy(csrline[colIndex:], csrline[colIndex+1:])
 			}
 			for i := rowIndex; i+1 < len(slices); i++ {
 				slices[i][len(slices[i])-1] = slices[i+1][0]
