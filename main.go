@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"unicode/utf8"
 
@@ -146,7 +147,20 @@ const (
 	_KEY_F2     = "\x1B[OQ"
 )
 
-func main1() error {
+func readAll(reader io.Reader, slices [][]byte) [][]byte {
+	for {
+		var data [LINE_SIZE]byte
+		n, err := reader.Read(data[:])
+		if n > 0 {
+			slices = append(slices, data[:n])
+		}
+		if err != nil {
+			return slices
+		}
+	}
+}
+
+func mains(args []string) error {
 	disable := colorable.EnableColorsStdout(nil)
 	if disable != nil {
 		defer disable()
@@ -156,7 +170,7 @@ func main1() error {
 	io.WriteString(out, _ANSI_CURSOR_OFF)
 	defer io.WriteString(out, _ANSI_CURSOR_ON)
 
-	pin, err := NewArgf(os.Args[1:])
+	pin, err := NewArgf(args)
 	if err != nil {
 		return err
 	}
@@ -271,16 +285,7 @@ func main1() error {
 			colIndex = 0
 		case ">":
 			if reader != nil {
-				for {
-					var data [LINE_SIZE]byte
-					n, err := reader.Read(data[:])
-					if n > 0 {
-						slices = append(slices, data[:n])
-					}
-					if err != nil {
-						break
-					}
-				}
+				slices = readAll(reader, slices)
 			}
 			rowIndex = len(slices) - 1
 			colIndex = len(slices[rowIndex]) - 1
@@ -311,6 +316,33 @@ func main1() error {
 					}
 				}
 			}
+		case "w":
+			fname := "output.new"
+			var err error
+			if len(args) >= 1 {
+				fname, err = filepath.Abs(args[0])
+				if err != nil {
+					message = err.Error()
+					break
+				}
+				fname += ".new"
+			}
+			fname, err = getline(out, "write to>", fname)
+			if err != nil {
+				break
+			}
+			if reader != nil {
+				slices = readAll(reader, slices)
+			}
+			fd, err := os.OpenFile(fname, os.O_EXCL|os.O_CREATE, 0666)
+			if err != nil {
+				message = err.Error()
+				break
+			}
+			for _, s := range slices {
+				fd.Write(s)
+			}
+			fd.Close()
 		}
 		if colIndex >= len(slices[rowIndex]) {
 			colIndex = len(slices[rowIndex]) - 1
@@ -330,7 +362,7 @@ func main1() error {
 }
 
 func main() {
-	if err := main1(); err != nil {
+	if err := mains(os.Args[1:]); err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}
