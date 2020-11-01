@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -296,6 +297,18 @@ func mains(args []string) error {
 			slices = deleteOne(reader, slices, rowIndex, colIndex)
 		case "w":
 			if err := write(reader, out, slices, args); err != nil {
+				message = err.Error()
+			}
+		case "r":
+			bytes, err := getline(out, "replace>",
+				fmt.Sprintf("0x%02X", slices[rowIndex][colIndex]))
+			if err != nil {
+				message = err.Error()
+				break
+			}
+			if n, err := strconv.ParseUint(bytes, 0, 8); err == nil {
+				slices[rowIndex][colIndex] = byte(n)
+			} else {
 				message = err.Error()
 			}
 		}
