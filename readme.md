@@ -36,3 +36,7 @@ Key-binding
     * move the cursor to the begin of the file.
 * &gt;
     * move thr cursor to the end of the file.
+* x
+    * delete one byte on the cursor
+* w
+    * output to file
