@@ -147,6 +147,7 @@ const (
 	_KEY_RIGHT  = "\x1B[C"
 	_KEY_UP     = "\x1B[A"
 	_KEY_F2     = "\x1B[OQ"
+	_KEY_DEL    = "\x1B[3~"
 )
 
 func readAll(reader io.Reader, slices [][]byte) [][]byte {
@@ -292,7 +293,7 @@ func mains(args []string) error {
 			rowIndex = len(slices) - 1
 			colIndex = len(slices[rowIndex]) - 1
 			reader = nil
-		case "x":
+		case "x", _KEY_DEL:
 			if colIndex < LINE_SIZE {
 				csrline := slices[rowIndex]
 				copy(csrline[colIndex:], csrline[colIndex+1:])
