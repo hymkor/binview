@@ -285,6 +285,32 @@ func main1() error {
 			rowIndex = len(slices) - 1
 			colIndex = len(slices[rowIndex]) - 1
 			reader = nil
+		case "x":
+			if colIndex < LINE_SIZE {
+				csrline := slices[rowIndex]
+				copy(csrline[colIndex+1:], csrline[colIndex:])
+			}
+			for i := rowIndex; i+1 < len(slices); i++ {
+				slices[i][len(slices[i])-1] = slices[i+1][0]
+				copy(slices[i+1][:], slices[i+1][1:])
+			}
+			last := slices[len(slices)-1]
+			if reader != nil {
+				reader.Read(last[len(last)-1:])
+			} else {
+				if len(last) > 1 {
+					slices[len(slices)-1] = last[:len(last)-1]
+				} else {
+					slices = slices[:len(slices)-1]
+					if len(slices) <= 0 {
+						return nil
+					}
+					if rowIndex >= len(slices) {
+						rowIndex--
+						colIndex = len(slices[len(slices)-1]) - 1
+					}
+				}
+			}
 		}
 		if colIndex >= len(slices[rowIndex]) {
 			colIndex = len(slices[rowIndex]) - 1
