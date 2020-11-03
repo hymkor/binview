@@ -218,7 +218,7 @@ func mains(args []string) error {
 			message = ""
 		} else if 0 <= rowIndex && rowIndex < buffer.Count() {
 			if 0 <= colIndex && colIndex < buffer.WidthAt(rowIndex) {
-				fmt.Fprintf(out, "\x1B[0;33;1m(%08X):%02X\x1B[0m",
+				fmt.Fprintf(out, "\x1B[0;33;1m(%08[1]X):0x%02[2]X=%[2]d\x1B[0m",
 					rowIndex*LINE_SIZE+colIndex,
 					buffer.Byte(rowIndex, colIndex))
 			}
