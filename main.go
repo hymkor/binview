@@ -253,7 +253,7 @@ func mains(args []string) error {
 		case "<":
 			rowIndex = 0
 			colIndex = 0
-		case ">":
+		case ">", "G":
 			buffer.ReadAll()
 			rowIndex = buffer.Count() - 1
 			colIndex = buffer.WidthAt(rowIndex) - 1
