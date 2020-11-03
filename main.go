@@ -277,6 +277,9 @@ func mains(args []string) error {
 				message = err.Error()
 			}
 		}
+		if buffer.Count() <= 0 {
+			return nil
+		}
 		if rowIndex >= buffer.Count() {
 			rowIndex--
 			colIndex = LINE_SIZE

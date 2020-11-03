@@ -7,29 +7,28 @@ import (
 )
 
 func deleteOne(b *Buffer, rowIndex, colIndex int) {
+	b.ReadAll()
+	carry := byte(0)
+	for i := b.Count() - 1; i > rowIndex; i-- {
+		carry = b.Shift(i, carry)
+	}
+	csrline := b.Slices[rowIndex]
 	if colIndex < LINE_SIZE {
-		csrline := b.Slices[rowIndex]
 		copy(csrline[colIndex:], csrline[colIndex+1:])
 	}
-	for i := rowIndex; i+1 < b.Count(); i++ {
-		b.SetByte(i, b.Count()-1, b.Byte(i+1, 0))
-		copy(b.Slices[i+1][:], b.Slices[i+1][1:])
-	}
+	csrline[len(csrline)-1] = carry
+
 	last := b.Slices[len(b.Slices)-1]
-	if b.Reader != nil {
-		b.Read(last[len(last)-1:])
+	if len(last) > 1 {
+		b.Slices[len(b.Slices)-1] = last[:len(last)-1]
 	} else {
-		if len(last) > 1 {
-			b.Slices[len(b.Slices)-1] = last[:len(last)-1]
-		} else {
-			b.DropLastLine()
-			if b.Count() <= 0 {
-				return
-			}
-			if rowIndex >= b.Count() {
-				rowIndex--
-				colIndex = len(b.LastLine()) - 1
-			}
+		b.DropLastLine()
+		if b.Count() <= 0 {
+			return
+		}
+		if rowIndex >= b.Count() {
+			rowIndex--
+			colIndex = len(b.LastLine()) - 1
 		}
 	}
 }

@@ -72,10 +72,12 @@ func (b *Buffer) Fetch() ([]byte, int, error) {
 		if b.Reader == nil {
 			return nil, b.CursorY * LINE_SIZE, io.EOF
 		}
-		var slice1 [LINE_SIZE]byte
-		n, err := b.Read(slice1[:])
-		if n > 0 {
-			b.Add(slice1[:n])
+		var err error
+		if b.Slices == nil || len(b.Slices) <= 0 ||
+			len(b.Slices[len(b.Slices)-1]) == LINE_SIZE {
+			err = b.appendLine()
+		} else {
+			err = b.appendTail()
 		}
 		if err != nil {
 			b.Reader = nil
@@ -100,6 +102,7 @@ func (b *Buffer) ReadAll() {
 			b.Add(data[:n])
 		}
 		if err != nil {
+			b.Reader = nil
 			break
 		}
 	}
