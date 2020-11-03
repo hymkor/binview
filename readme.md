@@ -1,7 +1,5 @@
-binview
-=======
-
-Binary file viewer
+binview - Binary data viewer / editor
+========================
 
 ```
 $ binview [FILES...]
