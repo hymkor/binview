@@ -258,6 +258,9 @@ func mains(args []string) error {
 			rowIndex = buffer.Count() - 1
 			colIndex = buffer.WidthAt(rowIndex) - 1
 			buffer.Reader = nil
+		case "i":
+			insertOne(buffer, rowIndex, colIndex)
+			buffer.Slices[rowIndex][colIndex] = 0
 		case "x", _KEY_DEL:
 			deleteOne(buffer, rowIndex, colIndex)
 		case "w":
