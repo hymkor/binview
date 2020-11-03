@@ -32,6 +32,41 @@ func (b *Buffer) DropLastLine() {
 	b.Slices = b.Slices[:len(b.Slices)-1]
 }
 
+func (b *Buffer) Shift(r int, appendByte byte) (deleteByte byte) {
+	deleteByte = b.Slices[r][0]
+	copy(b.Slices[r][:], b.Slices[r][1:])
+	b.Slices[r][len(b.Slices[r])-1] = appendByte
+	return
+}
+
+func (b *Buffer) Unshift(r int, appendByte byte) (deleteByte byte) {
+	deleteByte = b.Slices[r][len(b.Slices[r])-1]
+	copy(b.Slices[r][1:], b.Slices[r])
+	b.Slices[r][0] = appendByte
+	return
+}
+
+func (b *Buffer) appendLine() error {
+	var slice1 [LINE_SIZE]byte
+	n, err := b.Read(slice1[:])
+	if n > 0 {
+		b.Add(slice1[:n])
+	}
+	return err
+}
+
+func (b *Buffer) appendTail() error {
+	last := b.Slices[len(b.Slices)-1]
+
+	slice1 := make([]byte, LINE_SIZE-len(last))
+	n, err := b.Read(slice1)
+	if n > 0 {
+		last = append(last, slice1[:n]...)
+		b.Slices[len(b.Slices)-1] = last
+	}
+	return err
+}
+
 func (b *Buffer) Fetch() ([]byte, int, error) {
 	if b.CursorY >= len(b.Slices) {
 		if b.Reader == nil {
