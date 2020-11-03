@@ -60,10 +60,15 @@ func draw(out io.Writer, address int, cursorPos int, slice []byte) {
 	}
 
 	for i := 0; i < len(slice); {
-		c, length := utf8.DecodeRune(slice[i:])
-		if c == utf8.RuneError || c < ' ' {
+		c := rune(slice[i])
+		length := 1
+		if c < ' ' || c == '\u007F' {
 			c = '.'
-			length = 1
+		} else if c >= utf8.RuneSelf {
+			c, length = utf8.DecodeRune(slice[i:])
+			if c == utf8.RuneError {
+				c = '.'
+			}
 		}
 		var on, off, padding string
 		if i <= cursorPos && cursorPos < i+length {
