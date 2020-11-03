@@ -179,6 +179,8 @@ func mains(args []string) error {
 
 	var lastWidth, lastHeight int
 
+	clipBoard := make([]byte, 0, 100)
+
 	message := ""
 	for {
 		screenWidth, screenHeight, err := tty1.Size()
@@ -260,8 +262,14 @@ func mains(args []string) error {
 			buffer.Reader = nil
 		case "i":
 			insertOne(buffer, rowIndex, colIndex)
-			buffer.Slices[rowIndex][colIndex] = 0
+			var newByte byte
+			if len(clipBoard) > 0 {
+				newByte = lastByte(clipBoard)
+				clipBoard = clipBoard[:len(clipBoard)-1]
+			}
+			buffer.Slices[rowIndex][colIndex] = newByte
 		case "x", _KEY_DEL:
+			clipBoard = append(clipBoard, buffer.Slices[rowIndex][colIndex])
 			deleteOne(buffer, rowIndex, colIndex)
 		case "w":
 			if err := write(buffer, out, args); err != nil {
