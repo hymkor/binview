@@ -6,10 +6,6 @@ import (
 	"path/filepath"
 )
 
-func lastByte(b []byte) byte {
-	return b[len(b)-1]
-}
-
 func insertOne(b *Buffer, rowIndex, colIndex int) {
 	b.ReadAll()
 	carry := lastByte(b.Slices[rowIndex])
@@ -36,7 +32,7 @@ func deleteOne(b *Buffer, rowIndex, colIndex int) {
 	if colIndex < LINE_SIZE {
 		copy(csrline[colIndex:], csrline[colIndex+1:])
 	}
-	csrline[len(csrline)-1] = carry
+	setLastByte(csrline, carry)
 
 	last := b.Slices[len(b.Slices)-1]
 	if len(last) > 1 {

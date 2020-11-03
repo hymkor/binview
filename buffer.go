@@ -5,6 +5,14 @@ import (
 	"io"
 )
 
+func lastByte(b []byte) byte {
+	return b[len(b)-1]
+}
+
+func setLastByte(b []byte, lastByte byte) {
+	b[len(b)-1] = lastByte
+}
+
 type Buffer struct {
 	Slices [][]byte
 	*bufio.Reader
@@ -28,6 +36,9 @@ func (b *Buffer) WidthAt(r int) int           { return len(b.Slices[r]) }
 func (b *Buffer) LastLine() []byte {
 	return b.Slices[len(b.Slices)-1]
 }
+func (b *Buffer) SetLastLine(line []byte) {
+	b.Slices[len(b.Slices)-1] = line
+}
 func (b *Buffer) DropLastLine() {
 	b.Slices = b.Slices[:len(b.Slices)-1]
 }
@@ -35,12 +46,12 @@ func (b *Buffer) DropLastLine() {
 func (b *Buffer) Shift(r int, appendByte byte) (deleteByte byte) {
 	deleteByte = b.Slices[r][0]
 	copy(b.Slices[r][:], b.Slices[r][1:])
-	b.Slices[r][len(b.Slices[r])-1] = appendByte
+	setLastByte(b.Slices[r], appendByte)
 	return
 }
 
 func (b *Buffer) Unshift(r int, appendByte byte) (deleteByte byte) {
-	deleteByte = b.Slices[r][len(b.Slices[r])-1]
+	deleteByte = lastByte(b.Slices[r])
 	copy(b.Slices[r][1:], b.Slices[r])
 	b.Slices[r][0] = appendByte
 	return
@@ -56,13 +67,13 @@ func (b *Buffer) appendLine() error {
 }
 
 func (b *Buffer) appendTail() error {
-	last := b.Slices[len(b.Slices)-1]
+	last := b.LastLine()
 
 	slice1 := make([]byte, LINE_SIZE-len(last))
 	n, err := b.Read(slice1)
 	if n > 0 {
 		last = append(last, slice1[:n]...)
-		b.Slices[len(b.Slices)-1] = last
+		b.SetLastLine(last)
 	}
 	return err
 }
