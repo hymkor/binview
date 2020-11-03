@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
@@ -89,14 +88,14 @@ var cache = map[int]string{}
 
 const CELL_WIDTH = 12
 
-func view(fetch func() ([]byte, int, error), csrpos, csrlin, w, h int, out io.Writer) (int, error) {
+func (b *Buffer) View(csrpos, csrlin, w, h int, out io.Writer) (int, error) {
 	count := 0
 	lfCount := 0
 	for {
 		if count >= h {
 			return lfCount, nil
 		}
-		record, address, err := fetch()
+		record, address, err := b.Fetch()
 		if err == io.EOF {
 			return lfCount, nil
 		}
@@ -150,19 +149,6 @@ const (
 	_KEY_DEL    = "\x1B[3~"
 )
 
-func readAll(reader io.Reader, slices [][]byte) [][]byte {
-	for {
-		var data [LINE_SIZE]byte
-		n, err := reader.Read(data[:])
-		if n > 0 {
-			slices = append(slices, data[:n])
-		}
-		if err != nil {
-			return slices
-		}
-	}
-}
-
 func mains(args []string) error {
 	disable := colorable.EnableColorsStdout(nil)
 	if disable != nil {
@@ -179,8 +165,7 @@ func mains(args []string) error {
 	}
 	defer pin.Close()
 
-	slices := [][]byte{}
-	reader := bufio.NewReader(pin)
+	buffer := NewBuffer(pin)
 
 	tty1, err := tty.Open()
 	if err != nil {
@@ -206,33 +191,15 @@ func mains(args []string) error {
 			lastHeight = screenHeight
 			io.WriteString(out, _ANSI_CURSOR_OFF)
 		}
-		y := startRow
+		buffer.CursorY = startRow
 		fetch := func() ([]byte, int, error) {
-			if y >= len(slices) {
-				if reader == nil {
-					return nil, y * LINE_SIZE, io.EOF
-				}
-				var slice1 [LINE_SIZE]byte
-				n, err := reader.Read(slice1[:])
-				if n > 0 {
-					slices = append(slices, slice1[:n])
-				}
-				if err != nil {
-					reader = nil
-				}
-			}
-			if y >= len(slices) {
-				return nil, 0, io.EOF
-			}
-			bin := slices[y]
-			y++
-			return bin, (y - 1) * LINE_SIZE, nil
+			return buffer.Fetch()
 		}
-		lf, err := view(fetch, colIndex, rowIndex-startRow, screenWidth-1, screenHeight-1, out)
+		lf, err := buffer.View(colIndex, rowIndex-startRow, screenWidth-1, screenHeight-1, out)
 		if err != nil {
 			return err
 		}
-		if len(slices) <= 0 {
+		if buffer.Count() <= 0 {
 			return nil
 		}
 		fmt.Fprintln(out, "\r") // \r is for Linux & go-tty
@@ -242,11 +209,11 @@ func mains(args []string) error {
 			io.WriteString(out, runewidth.Truncate(message, screenWidth-1, ""))
 			io.WriteString(out, _ANSI_RESET)
 			message = ""
-		} else if 0 <= rowIndex && rowIndex < len(slices) {
-			if 0 <= colIndex && colIndex < len(slices[rowIndex]) {
+		} else if 0 <= rowIndex && rowIndex < buffer.Count() {
+			if 0 <= colIndex && colIndex < buffer.WidthAt(rowIndex) {
 				fmt.Fprintf(out, "\x1B[0;33;1m(%08X):%02X\x1B[0m",
 					rowIndex*LINE_SIZE+colIndex,
-					slices[rowIndex][colIndex])
+					buffer.Byte(rowIndex, colIndex))
 			}
 		}
 		fmt.Fprint(out, ERASE_SCRN_AFTER)
@@ -264,7 +231,7 @@ func mains(args []string) error {
 				return nil
 			}
 		case "j", _KEY_DOWN, _KEY_CTRL_N:
-			if rowIndex < len(slices)-1 {
+			if rowIndex < buffer.Count()-1 {
 				rowIndex++
 			} else if _, _, err := fetch(); err == nil {
 				rowIndex++
@@ -282,38 +249,40 @@ func mains(args []string) error {
 		case "0", "^", _KEY_CTRL_A:
 			colIndex = 0
 		case "$", _KEY_CTRL_E:
-			colIndex = len(slices[rowIndex]) - 1
+			colIndex = buffer.WidthAt(rowIndex) - 1
 		case "<":
 			rowIndex = 0
 			colIndex = 0
 		case ">":
-			if reader != nil {
-				slices = readAll(reader, slices)
-			}
-			rowIndex = len(slices) - 1
-			colIndex = len(slices[rowIndex]) - 1
-			reader = nil
+			buffer.ReadAll()
+			rowIndex = buffer.Count() - 1
+			colIndex = buffer.WidthAt(rowIndex) - 1
+			buffer.Reader = nil
 		case "x", _KEY_DEL:
-			slices = deleteOne(reader, slices, rowIndex, colIndex)
+			deleteOne(buffer, rowIndex, colIndex)
 		case "w":
-			if err := write(reader, out, slices, args); err != nil {
+			if err := write(buffer, out, args); err != nil {
 				message = err.Error()
 			}
 		case "r":
 			bytes, err := getline(out, "replace>",
-				fmt.Sprintf("0x%02X", slices[rowIndex][colIndex]))
+				fmt.Sprintf("0x%02X", buffer.Byte(rowIndex, colIndex)))
 			if err != nil {
 				message = err.Error()
 				break
 			}
 			if n, err := strconv.ParseUint(bytes, 0, 8); err == nil {
-				slices[rowIndex][colIndex] = byte(n)
+				buffer.SetByte(rowIndex, colIndex, byte(n))
 			} else {
 				message = err.Error()
 			}
 		}
-		if colIndex >= len(slices[rowIndex]) {
-			colIndex = len(slices[rowIndex]) - 1
+		if rowIndex >= buffer.Count() {
+			rowIndex--
+			colIndex = LINE_SIZE
+		}
+		if colIndex >= buffer.WidthAt(rowIndex) {
+			colIndex = buffer.WidthAt(rowIndex) - 1
 		}
 
 		if rowIndex < startRow {
