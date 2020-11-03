@@ -247,12 +247,23 @@ func mains(args []string) error {
 			if rowIndex > 0 {
 				rowIndex--
 			}
-		case "h", _KEY_LEFT, _KEY_CTRL_B:
+		case "h", "\b", _KEY_LEFT, _KEY_CTRL_B:
 			if colIndex > 0 {
 				colIndex--
+			} else if rowIndex > 0 {
+				rowIndex--
+				colIndex = LINE_SIZE - 1
 			}
-		case "l", _KEY_RIGHT, _KEY_CTRL_F:
-			colIndex++
+		case "l", " ", _KEY_RIGHT, _KEY_CTRL_F:
+			if colIndex < LINE_SIZE-1 {
+				colIndex++
+			} else if rowIndex < buffer.Count()-1 {
+				rowIndex++
+				colIndex = 0
+			} else if _, _, err := fetch(); err == nil {
+				rowIndex++
+				colIndex = 0
+			}
 		case "0", "^", _KEY_CTRL_A:
 			colIndex = 0
 		case "$", _KEY_CTRL_E:
