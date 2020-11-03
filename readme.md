@@ -38,6 +38,8 @@ Key-binding
     * move thr cursor to the end of the file.
 * r
     * replace one byte
+* i
+    * insert one byte on the cursor
 * x , DEL
     * delete one byte on the cursor
 * w
