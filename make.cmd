@@ -1,7 +1,7 @@
 @echo off
 setlocal
 set "PROMPT=[make] "
-call :"%1"
+call :"%~1" "%~2"
 endlocal
 exit /b
 
@@ -11,7 +11,11 @@ exit /b
 
 :"package"
     for %%I in ("%CD%") do set "NAME=%%~nI"
-    set /P "VERSION=Version ? "
+    if "%1" == "" (
+        set /P "VERSION=Version ? "
+    ) else (
+        set "VERSION=%1"
+    )
     for %%I in (386 amd64) do (
         set GOARCH=%%I
         call :""
