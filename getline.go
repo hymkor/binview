@@ -3,8 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/zetamatta/go-readline-ny"
 	"io"
+	"strings"
+
+	"github.com/mattn/go-tty"
+
+	"github.com/zetamatta/go-readline-ny"
 )
 
 func getline(out io.Writer, prompt string, defaultStr string) (string, error) {
@@ -21,4 +25,39 @@ func getline(out io.Writer, prompt string, defaultStr string) (string, error) {
 	defer io.WriteString(out, _ANSI_CURSOR_OFF)
 	editor.BindKeySymbol(readline.K_ESCAPE, readline.F_INTR)
 	return editor.ReadLine(context.Background())
+}
+
+func getkey(tty1 *tty.TTY) (string, error) {
+	clean, err := tty1.Raw()
+	if err != nil {
+		return "", err
+	}
+	defer clean()
+
+	var buffer strings.Builder
+	escape := false
+	var surrogated rune = 0
+	for {
+		r, err := tty1.ReadRune()
+		if err != nil {
+			return "", err
+		}
+		if r == 0 {
+			continue
+		}
+		if surrogated > 0 {
+			r = 0x10000 + (surrogated-0xD800)*0x400 + (r - 0xDC00)
+			surrogated = 0
+		} else if 0xD800 <= r && r < 0xE000 { // surrogate pair first word.
+			surrogated = r
+			continue
+		}
+		buffer.WriteRune(r)
+		if r == '\x1B' {
+			escape = true
+		}
+		if !(escape && tty1.Buffered()) && buffer.Len() > 0 {
+			return buffer.String(), nil
+		}
+	}
 }

@@ -8,8 +8,6 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/zetamatta/go-readline-ny"
-
 	"github.com/mattn/go-colorable"
 	"github.com/mattn/go-runewidth"
 	"github.com/mattn/go-tty"
@@ -224,7 +222,7 @@ func mains(args []string) error {
 			}
 		}
 		fmt.Fprint(out, ERASE_SCRN_AFTER)
-		ch, err := readline.GetKey(tty1)
+		ch, err := getkey(tty1)
 		if err != nil {
 			return err
 		}
@@ -233,7 +231,7 @@ func mains(args []string) error {
 			cache = map[int]string{}
 		case "q", _KEY_ESC:
 			io.WriteString(out, _ANSI_YELLOW+"\rQuit Sure ? [y/n]"+ERASE_LINE)
-			if ch, err := readline.GetKey(tty1); err == nil && ch == "y" {
+			if ch, err := getkey(tty1); err == nil && ch == "y" {
 				io.WriteString(out, "\n")
 				return nil
 			}
