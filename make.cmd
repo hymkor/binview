@@ -11,7 +11,7 @@ exit /b
 
 :"package"
     for %%I in ("%CD%") do set "NAME=%%~nI"
-    if "%1" == "" (
+    if "%~1" == "" (
         set /P "VERSION=Version ? "
     ) else (
         set "VERSION=%1"
