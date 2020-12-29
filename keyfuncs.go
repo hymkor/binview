@@ -4,6 +4,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+
+	"github.com/mattn/go-tty"
 )
 
 func insertOne(b *Buffer, rowIndex, colIndex int) {
@@ -49,7 +51,9 @@ func deleteOne(b *Buffer, rowIndex, colIndex int) {
 	}
 }
 
-func write(buffer *Buffer, out io.Writer, args []string) error {
+var overWritten = map[string]struct{}{}
+
+func write(buffer *Buffer, tty1 *tty.TTY, out io.Writer, args []string) error {
 	fname := "output.new"
 	var err error
 	if len(args) >= 1 {
@@ -57,7 +61,6 @@ func write(buffer *Buffer, out io.Writer, args []string) error {
 		if err != nil {
 			return err
 		}
-		fname += ".new"
 	}
 	fname, err = getline(out, "write to>", fname)
 	if err != nil {
@@ -65,6 +68,20 @@ func write(buffer *Buffer, out io.Writer, args []string) error {
 	}
 	buffer.ReadAll()
 	fd, err := os.OpenFile(fname, os.O_EXCL|os.O_CREATE, 0666)
+	if os.IsExist(err) {
+		if _, ok := overWritten[fname]; ok {
+			os.Remove(fname)
+		} else {
+			if !yesNo(tty1, out, "Overwrite as \""+fname+"\" [y/n] ?") {
+				return err
+			}
+			backupName := fname + "~"
+			os.Remove(backupName)
+			os.Rename(fname, backupName)
+			overWritten[fname] = struct{}{}
+		}
+		fd, err = os.OpenFile(fname, os.O_EXCL|os.O_CREATE, 0666)
+	}
 	if err != nil {
 		return err
 	}

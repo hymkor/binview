@@ -61,3 +61,9 @@ func getkey(tty1 *tty.TTY) (string, error) {
 		}
 	}
 }
+
+func yesNo(tty1 *tty.TTY, out io.Writer, message string) bool {
+	fmt.Fprintf(out, "%s\r%s%s", _ANSI_YELLOW, message, ERASE_LINE)
+	ch, err := getkey(tty1)
+	return err == nil && ch == "y"
+}

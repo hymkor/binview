@@ -230,8 +230,7 @@ func mains(args []string) error {
 		case _KEY_CTRL_L:
 			cache = map[int]string{}
 		case "q", _KEY_ESC:
-			io.WriteString(out, _ANSI_YELLOW+"\rQuit Sure ? [y/n]"+ERASE_LINE)
-			if ch, err := getkey(tty1); err == nil && ch == "y" {
+			if yesNo(tty1, out, "Quit Sure ? [y/n]") {
 				io.WriteString(out, "\n")
 				return nil
 			}
@@ -286,7 +285,7 @@ func mains(args []string) error {
 			clipBoard = append(clipBoard, buffer.Slices[rowIndex][colIndex])
 			deleteOne(buffer, rowIndex, colIndex)
 		case "w":
-			if err := write(buffer, out, args); err != nil {
+			if err := write(buffer, tty1, out, args); err != nil {
 				message = err.Error()
 			}
 		case "r":
