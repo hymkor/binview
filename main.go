@@ -157,6 +157,32 @@ const (
 	CHANGED   = '*'
 )
 
+type Clip struct {
+	data []byte
+}
+
+func NewClip() *Clip {
+	return &Clip{data: make([]byte, 0, 100)}
+}
+
+func (c *Clip) Push(n byte) {
+	c.data = append(c.data, n)
+}
+
+func (c *Clip) Pop() byte {
+	var newByte byte
+	if len(c.data) > 0 {
+		tail := len(c.data) - 1
+		newByte = c.data[tail]
+		c.data = c.data[:tail]
+	}
+	return newByte
+}
+
+func (c *Clip) Len() int {
+	return len(c.data)
+}
+
 func mains(args []string) error {
 	disable := colorable.EnableColorsStdout(nil)
 	if disable != nil {
@@ -187,7 +213,7 @@ func mains(args []string) error {
 
 	var lastWidth, lastHeight int
 
-	clipBoard := make([]byte, 0, 100)
+	clipBoard := NewClip()
 
 	isChanged := UNCHANGED
 	message := ""
@@ -282,30 +308,20 @@ func mains(args []string) error {
 			buffer.Reader = nil
 		case "a":
 			appendOne(buffer, rowIndex, colIndex)
-			var newByte byte
-			if len(clipBoard) > 0 {
-				newByte = lastByte(clipBoard)
-				clipBoard = clipBoard[:len(clipBoard)-1]
-			}
 			if colIndex+1 < len(buffer.Slices[rowIndex]) {
 				colIndex++
 			} else {
 				colIndex = 0
 				rowIndex++
 			}
-			buffer.Slices[rowIndex][colIndex] = newByte
+			buffer.Slices[rowIndex][colIndex] = clipBoard.Pop()
 			isChanged = CHANGED
 		case "i":
 			insertOne(buffer, rowIndex, colIndex)
-			var newByte byte
-			if len(clipBoard) > 0 {
-				newByte = lastByte(clipBoard)
-				clipBoard = clipBoard[:len(clipBoard)-1]
-			}
-			buffer.Slices[rowIndex][colIndex] = newByte
+			buffer.Slices[rowIndex][colIndex] = clipBoard.Pop()
 			isChanged = CHANGED
 		case "x", _KEY_DEL:
-			clipBoard = append(clipBoard, buffer.Slices[rowIndex][colIndex])
+			clipBoard.Push(buffer.Slices[rowIndex][colIndex])
 			deleteOne(buffer, rowIndex, colIndex)
 			isChanged = CHANGED
 		case "w":
