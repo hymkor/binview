@@ -38,6 +38,8 @@ Key-binding
     * replace one byte
 * i
     * insert one byte on the cursor
+* a
+    * append one byte at the rightside of the cursor
 * x , DEL
     * delete one byte on the cursor
 * w
