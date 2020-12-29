@@ -152,6 +152,11 @@ const (
 	_KEY_DEL    = "\x1B[3~"
 )
 
+const (
+	UNCHANGED = ' '
+	CHANGED   = '*'
+)
+
 func mains(args []string) error {
 	disable := colorable.EnableColorsStdout(nil)
 	if disable != nil {
@@ -184,6 +189,7 @@ func mains(args []string) error {
 
 	clipBoard := make([]byte, 0, 100)
 
+	isChanged := UNCHANGED
 	message := ""
 	for {
 		screenWidth, screenHeight, err := tty1.Size()
@@ -216,9 +222,10 @@ func mains(args []string) error {
 			message = ""
 		} else if 0 <= rowIndex && rowIndex < buffer.Count() {
 			if 0 <= colIndex && colIndex < buffer.WidthAt(rowIndex) {
-				fmt.Fprintf(out, "\x1B[0;33;1m(%08[1]X):0x%02[2]X=%[2]d\x1B[0m",
+				fmt.Fprintf(out, "\x1B[0;33;1m%[3]c(%08[1]X):0x%02[2]X=%[2]d\x1B[0m",
 					rowIndex*LINE_SIZE+colIndex,
-					buffer.Byte(rowIndex, colIndex))
+					buffer.Byte(rowIndex, colIndex),
+					isChanged)
 			}
 		}
 		fmt.Fprint(out, ERASE_SCRN_AFTER)
@@ -281,12 +288,16 @@ func mains(args []string) error {
 				clipBoard = clipBoard[:len(clipBoard)-1]
 			}
 			buffer.Slices[rowIndex][colIndex] = newByte
+			isChanged = CHANGED
 		case "x", _KEY_DEL:
 			clipBoard = append(clipBoard, buffer.Slices[rowIndex][colIndex])
 			deleteOne(buffer, rowIndex, colIndex)
+			isChanged = CHANGED
 		case "w":
 			if err := write(buffer, tty1, out, args); err != nil {
 				message = err.Error()
+			}else{
+				isChanged = UNCHANGED
 			}
 		case "r":
 			bytes, err := getline(out, "replace>",
@@ -297,6 +308,7 @@ func mains(args []string) error {
 			}
 			if n, err := strconv.ParseUint(bytes, 0, 8); err == nil {
 				buffer.SetByte(rowIndex, colIndex, byte(n))
+				isChanged = CHANGED
 			} else {
 				message = err.Error()
 			}
