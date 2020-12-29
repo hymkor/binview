@@ -37,10 +37,14 @@ Key-binding
 * r
     * replace one byte
 * i
-    * insert one byte on the cursor
+    * insert '\0' on the cursor
 * a
-    * append one byte at the rightside of the cursor
+    * append '\0' at the rightside of the cursor
 * x , DEL
-    * delete one byte on the cursor
+    * delete and yank one byte on the cursor
+* p
+    * paste 1 byte the rightside of the cursor
+* P
+    * paste 1 byte the leftside of the cursor
 * w
     * output to file
