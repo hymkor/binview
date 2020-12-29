@@ -259,6 +259,7 @@ func mains(args []string) error {
 		if err != nil {
 			return err
 		}
+		var newByte byte = 0
 		switch ch {
 		case _KEY_CTRL_L:
 			cache = map[int]string{}
@@ -306,6 +307,12 @@ func mains(args []string) error {
 			rowIndex = buffer.Count() - 1
 			colIndex = buffer.WidthAt(rowIndex) - 1
 			buffer.Reader = nil
+		case "p":
+			if clipBoard.Len() <= 0 {
+				break
+			}
+			newByte = clipBoard.Pop()
+			fallthrough
 		case "a":
 			appendOne(buffer, rowIndex, colIndex)
 			if colIndex+1 < len(buffer.Slices[rowIndex]) {
@@ -314,11 +321,17 @@ func mains(args []string) error {
 				colIndex = 0
 				rowIndex++
 			}
-			buffer.Slices[rowIndex][colIndex] = clipBoard.Pop()
+			buffer.Slices[rowIndex][colIndex] = newByte
 			isChanged = CHANGED
+		case "P":
+			if clipBoard.Len() <= 0 {
+				break
+			}
+			newByte = clipBoard.Pop()
+			fallthrough
 		case "i":
 			insertOne(buffer, rowIndex, colIndex)
-			buffer.Slices[rowIndex][colIndex] = clipBoard.Pop()
+			buffer.Slices[rowIndex][colIndex] = newByte
 			isChanged = CHANGED
 		case "x", _KEY_DEL:
 			clipBoard.Push(buffer.Slices[rowIndex][colIndex])
