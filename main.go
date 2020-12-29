@@ -280,6 +280,21 @@ func mains(args []string) error {
 			rowIndex = buffer.Count() - 1
 			colIndex = buffer.WidthAt(rowIndex) - 1
 			buffer.Reader = nil
+		case "a":
+			appendOne(buffer, rowIndex, colIndex)
+			var newByte byte
+			if len(clipBoard) > 0 {
+				newByte = lastByte(clipBoard)
+				clipBoard = clipBoard[:len(clipBoard)-1]
+			}
+			if colIndex+1 < len(buffer.Slices[rowIndex]) {
+				colIndex++
+			} else {
+				colIndex = 0
+				rowIndex++
+			}
+			buffer.Slices[rowIndex][colIndex] = newByte
+			isChanged = CHANGED
 		case "i":
 			insertOne(buffer, rowIndex, colIndex)
 			var newByte byte
@@ -296,7 +311,7 @@ func mains(args []string) error {
 		case "w":
 			if err := write(buffer, tty1, out, args); err != nil {
 				message = err.Error()
-			}else{
+			} else {
 				isChanged = UNCHANGED
 			}
 		case "r":

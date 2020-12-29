@@ -8,11 +8,8 @@ import (
 	"github.com/mattn/go-tty"
 )
 
-func insertOne(b *Buffer, rowIndex, colIndex int) {
-	b.ReadAll()
-	carry := lastByte(b.Slices[rowIndex])
-	copy(b.Slices[rowIndex][colIndex+1:], b.Slices[rowIndex][colIndex:])
-	for i := rowIndex + 1; i < b.Count(); i++ {
+func unshiftLines(b *Buffer, rowIndex int, carry byte) {
+	for i := rowIndex; i < b.Count(); i++ {
 		carry = b.Unshift(i, carry)
 	}
 	last := b.Slices[b.Count()-1]
@@ -22,6 +19,25 @@ func insertOne(b *Buffer, rowIndex, colIndex int) {
 	} else {
 		b.Slices = append(b.Slices, []byte{carry})
 	}
+}
+
+func insertOne(b *Buffer, rowIndex, colIndex int) {
+	b.ReadAll()
+	carry := lastByte(b.Slices[rowIndex])
+	copy(b.Slices[rowIndex][colIndex+1:], b.Slices[rowIndex][colIndex:])
+
+	unshiftLines(b, rowIndex+1, carry)
+}
+
+func appendOne(b *Buffer, rowIndex, colIndex int) {
+	b.ReadAll()
+	if colIndex+1 < len(b.Slices[rowIndex]) {
+		// colIndex <= 14
+		insertOne(b, rowIndex, colIndex+1)
+		return
+	}
+	// colIndex == 15 and insert at colindex == 16
+	unshiftLines(b, rowIndex+1, 0)
 }
 
 func deleteOne(b *Buffer, rowIndex, colIndex int) {
