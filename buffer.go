@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"io"
+	"unicode/utf8"
 )
 
 func lastByte(b []byte) byte {
@@ -36,6 +37,40 @@ func (b *Buffer) WidthAt(r int) int           { return len(b.Slices[r]) }
 func (b *Buffer) LastLine() []byte {
 	return b.Slices[len(b.Slices)-1]
 }
+
+func (b *Buffer) Rune(r, c int) (rune, int, int) {
+	// seek first
+	currentPosInRune := 0
+	for !utf8.RuneStart(b.Byte(r, c)) {
+		c--
+		currentPosInRune++
+		if c < 0 {
+			r--
+			if r < 0 {
+				break
+			}
+			c = len(b.Slices[r]) - 1
+		}
+	}
+	bytes := make([]byte, 0, 6)
+	for {
+		bytes = append(bytes, b.Byte(r, c))
+		c++
+		if c >= len(b.Slices[r]) {
+			c = 0
+			r++
+			if r >= len(b.Slices) {
+				break
+			}
+		}
+		if utf8.RuneStart(b.Byte(r, c)) {
+			break
+		}
+	}
+	theRune, theLen := utf8.DecodeRune(bytes)
+	return theRune, currentPosInRune, theLen
+}
+
 func (b *Buffer) SetLastLine(line []byte) {
 	b.Slices[len(b.Slices)-1] = line
 }

@@ -248,10 +248,15 @@ func mains(args []string) error {
 			message = ""
 		} else if 0 <= rowIndex && rowIndex < buffer.Count() {
 			if 0 <= colIndex && colIndex < buffer.WidthAt(rowIndex) {
-				fmt.Fprintf(out, "\x1B[0;33;1m%[3]c(%08[1]X):0x%02[2]X=%[2]d\x1B[0m",
+				theRune, thePosInRune, theLenOfRune := buffer.Rune(rowIndex, colIndex)
+				fmt.Fprintf(out,
+					"\x1B[0;33;1m%[3]c(%08[1]X):0x%02[2]X=%[2]d (%[5]d/%[6]d:U+%[4]X)\x1B[0m",
 					rowIndex*LINE_SIZE+colIndex,
 					buffer.Byte(rowIndex, colIndex),
-					isChanged)
+					isChanged,
+					theRune,
+					thePosInRune+1,
+					theLenOfRune)
 			}
 		}
 		fmt.Fprint(out, ERASE_SCRN_AFTER)
