@@ -24,5 +24,5 @@ exit /b
     set GOARCH=amd64
     set GOOS=linux
     call :""
-    tar zcvf %NAME%-%VERSION%-linux-amd64.zip %NAME%
+    tar zcvf %NAME%-%VERSION%-linux-amd64.tar.gz %NAME%
     exit /b
