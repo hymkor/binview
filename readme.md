@@ -48,3 +48,5 @@ Key-binding
     * paste 1 byte the leftside of the cursor
 * w
     * output to file
+
+[Release Note](.\release_note.md)
