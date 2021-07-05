@@ -284,6 +284,8 @@ func mains(args []string) error {
 				rowIndex++
 			} else if _, _, err := fetch(); err == nil {
 				rowIndex++
+			} else if err != io.EOF {
+				return err
 			}
 		case "k", _KEY_UP, _KEY_CTRL_P:
 			if rowIndex > 0 {
@@ -305,6 +307,8 @@ func mains(args []string) error {
 			} else if _, _, err := fetch(); err == nil {
 				rowIndex++
 				colIndex = 0
+			} else if err != io.EOF {
+				return err
 			}
 		case "0", "^", _KEY_CTRL_A:
 			colIndex = 0

@@ -16,11 +16,19 @@ func NewArgf(args []string) (*Argf, error) {
 	if args == nil || len(args) < 1 {
 		return &Argf{args: nil, reader: ioutil.NopCloser(os.Stdin)}, nil
 	}
-	reader, err := os.Open(args[0])
+	fd, err := os.Open(args[0])
 	if err != nil {
 		return nil, err
 	}
-	return &Argf{args: args[1:], reader: reader}, nil
+	stat, err := fd.Stat()
+	if err != nil {
+		return nil, err
+	}
+	if stat.IsDir() {
+		return nil, fmt.Errorf("%s: can not read a directory", args[0])
+	}
+
+	return &Argf{args: args[1:], reader: fd}, nil
 }
 
 func (this *Argf) Read(data []byte) (int, error) {
@@ -34,10 +42,18 @@ func (this *Argf) Read(data []byte) (int, error) {
 			if this.args != nil && len(this.args) >= 1 {
 				fname := this.args[0]
 				this.args = this.args[1:]
-				this.reader, err = os.Open(fname)
+				fd, err := os.Open(fname)
 				if err != nil {
 					return 0, fmt.Errorf("%s: %w", fname, err)
 				}
+				stat, err := fd.Stat()
+				if err != nil {
+					return 0, err
+				}
+				if stat.IsDir() {
+					return 0, fmt.Errorf("%s: can not read a directory", fname)
+				}
+				this.reader = fd
 			} else {
 				return n, io.EOF
 			}
@@ -46,7 +62,7 @@ func (this *Argf) Read(data []byte) (int, error) {
 			break
 		}
 		var m int
-		m, err = this.Read(data[n:])
+		m, err = this.reader.Read(data[n:])
 		n += m
 	}
 	return n, err

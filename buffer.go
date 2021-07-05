@@ -135,6 +135,9 @@ func (b *Buffer) Fetch() ([]byte, int, error) {
 		}
 		if err != nil {
 			b.Reader = nil
+			if err != io.EOF {
+				return nil, 0, err
+			}
 		}
 	}
 	if b.CursorY >= len(b.Slices) {
