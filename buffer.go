@@ -43,7 +43,6 @@ func (b *Buffer) Rune(r, c int) (rune, int, int) {
 	currentPosInRune := 0
 	for !utf8.RuneStart(b.Byte(r, c)) {
 		c--
-		currentPosInRune++
 		if c < 0 {
 			r--
 			if r < 0 {
@@ -53,6 +52,7 @@ func (b *Buffer) Rune(r, c int) (rune, int, int) {
 			}
 			c = len(b.Slices[r]) - 1
 		}
+		currentPosInRune++
 	}
 	bytes := make([]byte, 0, utf8.UTFMax)
 	for {
@@ -73,6 +73,9 @@ func (b *Buffer) Rune(r, c int) (rune, int, int) {
 		}
 	}
 	theRune, theLen := utf8.DecodeRune(bytes)
+	if currentPosInRune >= theLen {
+		return utf8.RuneError, 0, 1
+	}
 	return theRune, currentPosInRune, theLen
 }
 
