@@ -47,6 +47,8 @@ func (b *Buffer) Rune(r, c int) (rune, int, int) {
 		if c < 0 {
 			r--
 			if r < 0 {
+				r = 0
+				c = 0
 				break
 			}
 			c = len(b.Slices[r]) - 1
