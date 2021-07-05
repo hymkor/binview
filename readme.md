@@ -49,4 +49,8 @@ Key-binding
 * w
     * output to file
 
-[Release Note](.\release_note.md)
+Release Note
+============
+
+- [English](/release_note_en.md)
+- [Japanese](/release_note_ja.md)
