@@ -7,6 +7,7 @@ on Jul 5,2021
 
 - (#1) Fix the overflow that pointer to seek the top of the rune is decreased less than zero (Thx @spiegel-im-spiegel)
 - If the cursor is not on utf8 sequences, print `(not utf8)`
+- If the parameter is a directory, show error and quit immediately instead of hanging
 
 0.2.0
 -----
