@@ -54,9 +54,12 @@ func (b *Buffer) Rune(r, c int) (rune, int, int) {
 			c = len(b.Slices[r]) - 1
 		}
 	}
-	bytes := make([]byte, 0, 6)
+	bytes := make([]byte, 0, utf8.UTFMax)
 	for {
 		bytes = append(bytes, b.Byte(r, c))
+		if len(bytes) >= utf8.UTFMax {
+			break
+		}
 		c++
 		if c >= len(b.Slices[r]) {
 			c = 0
