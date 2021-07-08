@@ -107,7 +107,7 @@ func (b *Buffer) View(csrpos, csrlin, w, h int, out io.Writer) (int, error) {
 		}
 		if count > 0 {
 			lfCount++
-			fmt.Fprintln(out, "\r") // "\r" is for Linux and go-tty
+			io.WriteString(out, "\r\n") // "\r" is for Linux and go-tty
 		}
 		var cursorPos int
 		if count == csrlin {
@@ -239,7 +239,7 @@ func mains(args []string) error {
 		if buffer.Count() <= 0 {
 			return nil
 		}
-		fmt.Fprintln(out, "\r") // \r is for Linux & go-tty
+		io.WriteString(out, "\r\n") // \r is for Linux & go-tty
 		lf++
 		if message != "" {
 			io.WriteString(out, _ANSI_YELLOW)
@@ -265,7 +265,7 @@ func mains(args []string) error {
 				io.WriteString(out, "\x1B[0m")
 			}
 		}
-		fmt.Fprint(out, ERASE_SCRN_AFTER)
+		io.WriteString(out, ERASE_SCRN_AFTER)
 		ch, err := getkey(tty1)
 		if err != nil {
 			return err
@@ -391,7 +391,7 @@ func mains(args []string) error {
 		if lf > 0 {
 			fmt.Fprintf(out, "\r\x1B[%dA", lf)
 		} else {
-			fmt.Fprint(out, "\r")
+			io.WriteString(out, "\r")
 		}
 	}
 }
