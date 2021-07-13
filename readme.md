@@ -1,6 +1,16 @@
 binview - Binary data viewer / editor
 ========================
 
+![ScreenShot](./screenshot.png)
+
+Install
+--------
+
+Download the binary package from [Releases](https://github.com/zetamatta/binview/releases) and extract the executable
+
+Usage
+-----
+
 ```
 $ binview [FILES...]
 ```
@@ -8,10 +18,8 @@ $ binview [FILES...]
 or
 
 ```
-$ binview < FILE
+$ cat FILE | binview
 ```
-
-![ScreenShot](./screenshot.png)
 
 Key-binding
 -----------
