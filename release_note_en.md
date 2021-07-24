@@ -1,6 +1,8 @@
 Release notes
 =============
 
+- Fix the problem that the utf8-rune on the line boundary could not be drawn
+
 0.2.1
 -----
 on Jul 5,2021
