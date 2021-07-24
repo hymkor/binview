@@ -28,13 +28,13 @@ const LINE_SIZE = 16
 
 // See. en.wikipedia.org/wiki/Unicode_control_characters#Control_pictures
 
-func draw(out io.Writer, address int, cursorPos int, slice []byte) {
+func draw(out io.Writer, address int, cursorPos int, current []byte, next []byte) {
 	if cursorPos >= 0 {
 		io.WriteString(out, _ANSI_UNDERLINE_ON)
 		defer io.WriteString(out, _ANSI_UNDERLINE_OFF)
 	}
 	fmt.Fprintf(out, "%s%08X%s ", CELL2_COLOR_ON, address, CELL2_COLOR_OFF)
-	for i, s := range slice {
+	for i, s := range current {
 		var fieldSeperator string
 		if i > 0 {
 			fieldSeperator = " "
@@ -53,17 +53,22 @@ func draw(out io.Writer, address int, cursorPos int, slice []byte) {
 		fmt.Fprintf(out, "%s%s%02X%s", fieldSeperator, on, s, off)
 	}
 	io.WriteString(out, " ")
-	for i := len(slice); i < LINE_SIZE; i++ {
+	for i := len(current); i < LINE_SIZE; i++ {
 		io.WriteString(out, "   ")
 	}
 
-	for i := 0; i < len(slice); {
-		c := rune(slice[i])
+	var joinline [LINE_SIZE * 2]byte
+	copy(joinline[:], current)
+	if next != nil {
+		copy(joinline[len(current):], next)
+	}
+	for i := 0; i < len(current); {
+		c := rune(joinline[i])
 		length := 1
 		if c < ' ' || c == '\u007F' {
 			c = '.'
 		} else if c >= utf8.RuneSelf {
-			c, length = utf8.DecodeRune(slice[i:])
+			c, length = utf8.DecodeRune(joinline[i:])
 			if c == utf8.RuneError {
 				c = '.'
 			}
@@ -115,8 +120,13 @@ func (b *Buffer) View(csrpos, csrlin, w, h int, out io.Writer) (int, error) {
 		} else {
 			cursorPos = -1
 		}
+
+		nextBytes, _, err := b.PreFetch()
+		if err != nil {
+			nextBytes = nil
+		}
 		var buffer strings.Builder
-		draw(&buffer, address, cursorPos, record)
+		draw(&buffer, address, cursorPos, record, nextBytes)
 		line := buffer.String()
 		if f := cache[count]; f != line {
 			io.WriteString(out, line)

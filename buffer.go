@@ -121,7 +121,7 @@ func (b *Buffer) appendTail() error {
 	return err
 }
 
-func (b *Buffer) Fetch() ([]byte, int, error) {
+func (b *Buffer) PreFetch() ([]byte, int, error) {
 	if b.CursorY >= len(b.Slices) {
 		if b.Reader == nil {
 			return nil, b.CursorY * LINE_SIZE, io.EOF
@@ -144,8 +144,16 @@ func (b *Buffer) Fetch() ([]byte, int, error) {
 		return nil, 0, io.EOF
 	}
 	bin := b.Line(b.CursorY)
+	return bin, b.CursorY * LINE_SIZE, nil
+}
+
+func (b *Buffer) Fetch() ([]byte, int, error) {
+	bin, size, err := b.PreFetch()
+	if err != nil {
+		return bin, size, err
+	}
 	b.CursorY++
-	return bin, (b.CursorY - 1) * LINE_SIZE, nil
+	return bin, size, nil
 }
 
 func (b *Buffer) ReadAll() {
