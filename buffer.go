@@ -6,35 +6,26 @@ import (
 	"unicode/utf8"
 )
 
-func lastByte(b []byte) byte {
-	return b[len(b)-1]
-}
-
-func setLastByte(b []byte, lastByte byte) {
-	b[len(b)-1] = lastByte
-}
-
 type Buffer struct {
-	Slices [][]byte
+	Slices []Line
 	*bufio.Reader
 	CursorY int
 }
 
 func NewBuffer(r io.Reader) *Buffer {
 	return &Buffer{
-		Slices:  [][]byte{},
+		Slices:  []Line{},
 		Reader:  bufio.NewReader(r),
 		CursorY: 0,
 	}
 }
 
-func (b *Buffer) Add(tmp []byte)              { b.Slices = append(b.Slices, tmp) }
+func (b *Buffer) Add(tmp Line)                { b.Slices = append(b.Slices, tmp) }
 func (b *Buffer) Count() int                  { return len(b.Slices) }
-func (b *Buffer) Line(n int) []byte           { return b.Slices[n] }
+func (b *Buffer) Line(n int) Line             { return b.Slices[n] }
 func (b *Buffer) Byte(r, c int) byte          { return b.Slices[r][c] }
 func (b *Buffer) SetByte(r, c int, data byte) { b.Slices[r][c] = data }
-func (b *Buffer) WidthAt(r int) int           { return len(b.Slices[r]) }
-func (b *Buffer) LastLine() []byte {
+func (b *Buffer) LastLine() Line {
 	return b.Slices[len(b.Slices)-1]
 }
 
@@ -86,18 +77,12 @@ func (b *Buffer) DropLastLine() {
 	b.Slices = b.Slices[:len(b.Slices)-1]
 }
 
-func (b *Buffer) Shift(r int, appendByte byte) (deleteByte byte) {
-	deleteByte = b.Slices[r][0]
-	copy(b.Slices[r][:], b.Slices[r][1:])
-	setLastByte(b.Slices[r], appendByte)
-	return
+func (b *Buffer) Shift(r int, appendByte byte) byte {
+	return b.Slices[r].Shift(appendByte)
 }
 
-func (b *Buffer) Unshift(r int, appendByte byte) (deleteByte byte) {
-	deleteByte = lastByte(b.Slices[r])
-	copy(b.Slices[r][1:], b.Slices[r])
-	b.Slices[r][0] = appendByte
-	return
+func (b *Buffer) Unshift(r int, appendByte byte) byte {
+	return b.Slices[r].Unshift(appendByte)
 }
 
 func (b *Buffer) appendLine() error {
@@ -169,6 +154,52 @@ func (b *Buffer) ReadAll() {
 		if err != nil {
 			b.Reader = nil
 			break
+		}
+	}
+}
+
+func (b *Buffer) UnshiftLines(rowIndex int, carry byte) {
+	for i := rowIndex; i < b.Count(); i++ {
+		carry = b.Unshift(i, carry)
+	}
+	last := b.Slices[b.Count()-1]
+	if len(last) < LINE_SIZE {
+		last = append(last, carry)
+		b.Slices[b.Count()-1] = last
+	} else {
+		b.Slices = append(b.Slices, []byte{carry})
+	}
+}
+
+func (b *Buffer) InsertAt(rowIndex, colIndex int, value byte) {
+	b.ReadAll()
+	carry := b.Slices[rowIndex].InsertAt(colIndex, value)
+	b.UnshiftLines(rowIndex+1, carry)
+}
+
+func (b *Buffer) deleteOne(rowIndex, colIndex int) {
+	b.ReadAll()
+	carry := byte(0)
+	for i := b.Count() - 1; i > rowIndex; i-- {
+		carry = b.Shift(i, carry)
+	}
+	csrline := b.Slices[rowIndex]
+	if colIndex < LINE_SIZE {
+		copy(csrline[colIndex:], csrline[colIndex+1:])
+	}
+	csrline.SetLastByte(carry)
+
+	last := b.Slices[len(b.Slices)-1]
+	if len(last) > 1 {
+		b.Slices[len(b.Slices)-1] = last[:len(last)-1]
+	} else {
+		b.DropLastLine()
+		if b.Count() <= 0 {
+			return
+		}
+		if rowIndex >= b.Count() {
+			rowIndex--
+			colIndex = len(b.LastLine()) - 1
 		}
 	}
 }

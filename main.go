@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strconv"
+	"path/filepath"
 	"strings"
 	"unicode/utf8"
 
@@ -193,221 +193,167 @@ func (c *Clip) Len() int {
 	return len(c.data)
 }
 
+type Application struct {
+	tty1         *tty.TTY
+	in           io.Reader
+	out          io.Writer
+	screenWidth  int
+	screenHeight int
+	colIndex     int
+	rowIndex     int
+	buffer       *Buffer
+	clipBoard    *Clip
+	isChanged    rune
+	savePath     string
+	message      string
+	cache        map[int]string
+}
+
+func NewApplication(in io.Reader, defaultName string) (*Application, error) {
+	this := &Application{}
+
+	this.savePath = defaultName
+	this.in = in
+
+	this.out = colorable.NewColorableStdout()
+
+	var err error
+	this.tty1, err = tty.Open()
+	if err != nil {
+		return nil, err
+	}
+	this.clipBoard = NewClip()
+
+	this.buffer = NewBuffer(this.in)
+
+	io.WriteString(this.out, _ANSI_CURSOR_OFF)
+
+	this.isChanged = UNCHANGED
+	this.message = ""
+
+	return this, nil
+}
+
+func (this *Application) Close() error {
+	io.WriteString(this.out, _ANSI_CURSOR_ON)
+
+	if this.tty1 != nil {
+		this.tty1.Close()
+	}
+	return nil
+}
+
 func mains(args []string) error {
 	disable := colorable.EnableColorsStdout(nil)
 	if disable != nil {
 		defer disable()
 	}
-	out := colorable.NewColorableStdout()
 
-	io.WriteString(out, _ANSI_CURSOR_OFF)
-	defer io.WriteString(out, _ANSI_CURSOR_ON)
-
-	pin, err := NewArgf(args)
+	in, err := NewArgf(args)
 	if err != nil {
 		return err
 	}
-	defer pin.Close()
+	defer in.Close()
 
-	buffer := NewBuffer(pin)
+	savePath := "output.new"
+	if len(args) > 0 {
+		savePath, err = filepath.Abs(args[0])
+		if err != nil {
+			return err
+		}
+	}
 
-	tty1, err := tty.Open()
+	app, err := NewApplication(in, savePath)
 	if err != nil {
 		return err
 	}
-	defer tty1.Close()
+	defer app.Close()
 
-	colIndex := 0
-	rowIndex := 0
 	startRow := 0
 
 	var lastWidth, lastHeight int
-
-	clipBoard := NewClip()
-
-	isChanged := UNCHANGED
-	message := ""
 	for {
-		screenWidth, screenHeight, err := tty1.Size()
+		app.screenWidth, app.screenHeight, err = app.tty1.Size()
 		if err != nil {
 			return err
 		}
-		if lastWidth != screenWidth || lastHeight != screenHeight {
-			cache = map[int]string{}
-			lastWidth = screenWidth
-			lastHeight = screenHeight
-			io.WriteString(out, _ANSI_CURSOR_OFF)
+		if lastWidth != app.screenWidth || lastHeight != app.screenHeight {
+			app.cache = map[int]string{}
+			lastWidth = app.screenWidth
+			lastHeight = app.screenHeight
+			io.WriteString(app.out, _ANSI_CURSOR_OFF)
 		}
-		buffer.CursorY = startRow
-		fetch := func() ([]byte, int, error) {
-			return buffer.Fetch()
-		}
-		lf, err := buffer.View(colIndex, rowIndex-startRow, screenWidth-1, screenHeight-1, out)
+		app.buffer.CursorY = startRow
+		lf, err := app.buffer.View(app.colIndex, app.rowIndex-startRow, app.screenWidth-1, app.screenHeight-1, app.out)
 		if err != nil {
 			return err
 		}
-		if buffer.Count() <= 0 {
+		if app.buffer.Count() <= 0 {
 			return nil
 		}
-		io.WriteString(out, "\r\n") // \r is for Linux & go-tty
+		io.WriteString(app.out, "\r\n") // \r is for Linux & go-tty
 		lf++
-		if message != "" {
-			io.WriteString(out, _ANSI_YELLOW)
-			io.WriteString(out, runewidth.Truncate(message, screenWidth-1, ""))
-			io.WriteString(out, _ANSI_RESET)
-			message = ""
-		} else if 0 <= rowIndex && rowIndex < buffer.Count() {
-			if 0 <= colIndex && colIndex < buffer.WidthAt(rowIndex) {
-				fmt.Fprintf(out, "\x1B[0;33;1m%[3]c(%08[1]X):0x%02[2]X=%-4[2]d",
-					rowIndex*LINE_SIZE+colIndex,
-					buffer.Byte(rowIndex, colIndex),
-					isChanged)
+		if app.message != "" {
+			io.WriteString(app.out, _ANSI_YELLOW)
+			io.WriteString(app.out, runewidth.Truncate(app.message, app.screenWidth-1, ""))
+			io.WriteString(app.out, _ANSI_RESET)
+			app.message = ""
+		} else if 0 <= app.rowIndex && app.rowIndex < app.buffer.Count() {
+			if 0 <= app.colIndex && app.colIndex < app.buffer.Line(app.rowIndex).Len() {
+				fmt.Fprintf(app.out, "\x1B[0;33;1m%[3]c(%08[1]X):0x%02[2]X=%-4[2]d",
+					app.rowIndex*LINE_SIZE+app.colIndex,
+					app.buffer.Byte(app.rowIndex, app.colIndex),
+					app.isChanged)
 
-				theRune, thePosInRune, theLenOfRune := buffer.Rune(rowIndex, colIndex)
+				theRune, thePosInRune, theLenOfRune :=
+					app.buffer.Rune(app.rowIndex, app.colIndex)
 				if theRune != utf8.RuneError {
-					fmt.Fprintf(out, "(%d/%d:U+%X)",
+					fmt.Fprintf(app.out, "(%d/%d:U+%X)",
 						thePosInRune+1,
 						theLenOfRune,
 						theRune)
 				} else {
-					io.WriteString(out, "(not UTF8)")
+					io.WriteString(app.out, "(not UTF8)")
 				}
-				io.WriteString(out, "\x1B[0m")
+				io.WriteString(app.out, "\x1B[0m")
 			}
 		}
-		io.WriteString(out, ERASE_SCRN_AFTER)
-		ch, err := getkey(tty1)
+		io.WriteString(app.out, ERASE_SCRN_AFTER)
+		ch, err := getkey(app.tty1)
 		if err != nil {
 			return err
 		}
-		var newByte byte = 0
-		switch ch {
-		case _KEY_CTRL_L:
-			cache = map[int]string{}
-		case "q", _KEY_ESC:
-			if yesNo(tty1, out, "Quit Sure ? [y/n]") {
-				io.WriteString(out, "\n")
-				return nil
-			}
-		case "j", _KEY_DOWN, _KEY_CTRL_N:
-			if rowIndex < buffer.Count()-1 {
-				rowIndex++
-			} else if _, _, err := fetch(); err == nil {
-				rowIndex++
-			} else if err != io.EOF {
+		if hander, ok := jumpTable[ch]; ok {
+			if err := hander(app); err != nil {
 				return err
-			}
-		case "k", _KEY_UP, _KEY_CTRL_P:
-			if rowIndex > 0 {
-				rowIndex--
-			}
-		case "h", "\b", _KEY_LEFT, _KEY_CTRL_B:
-			if colIndex > 0 {
-				colIndex--
-			} else if rowIndex > 0 {
-				rowIndex--
-				colIndex = LINE_SIZE - 1
-			}
-		case "l", " ", _KEY_RIGHT, _KEY_CTRL_F:
-			if colIndex < LINE_SIZE-1 {
-				colIndex++
-			} else if rowIndex < buffer.Count()-1 {
-				rowIndex++
-				colIndex = 0
-			} else if _, _, err := fetch(); err == nil {
-				rowIndex++
-				colIndex = 0
-			} else if err != io.EOF {
-				return err
-			}
-		case "0", "^", _KEY_CTRL_A:
-			colIndex = 0
-		case "$", _KEY_CTRL_E:
-			colIndex = buffer.WidthAt(rowIndex) - 1
-		case "<":
-			rowIndex = 0
-			colIndex = 0
-		case ">", "G":
-			buffer.ReadAll()
-			rowIndex = buffer.Count() - 1
-			colIndex = buffer.WidthAt(rowIndex) - 1
-			buffer.Reader = nil
-		case "p":
-			if clipBoard.Len() <= 0 {
-				break
-			}
-			newByte = clipBoard.Pop()
-			fallthrough
-		case "a":
-			appendOne(buffer, rowIndex, colIndex)
-			if colIndex+1 < len(buffer.Slices[rowIndex]) {
-				colIndex++
-			} else {
-				colIndex = 0
-				rowIndex++
-			}
-			buffer.Slices[rowIndex][colIndex] = newByte
-			isChanged = CHANGED
-		case "P":
-			if clipBoard.Len() <= 0 {
-				break
-			}
-			newByte = clipBoard.Pop()
-			fallthrough
-		case "i":
-			insertOne(buffer, rowIndex, colIndex)
-			buffer.Slices[rowIndex][colIndex] = newByte
-			isChanged = CHANGED
-		case "x", _KEY_DEL:
-			clipBoard.Push(buffer.Slices[rowIndex][colIndex])
-			deleteOne(buffer, rowIndex, colIndex)
-			isChanged = CHANGED
-		case "w":
-			if err := write(buffer, tty1, out, args); err != nil {
-				message = err.Error()
-			} else {
-				isChanged = UNCHANGED
-			}
-		case "r":
-			bytes, err := getline(out, "replace>",
-				fmt.Sprintf("0x%02X", buffer.Byte(rowIndex, colIndex)))
-			if err != nil {
-				message = err.Error()
-				break
-			}
-			if n, err := strconv.ParseUint(bytes, 0, 8); err == nil {
-				buffer.SetByte(rowIndex, colIndex, byte(n))
-				isChanged = CHANGED
-			} else {
-				message = err.Error()
 			}
 		}
-		if buffer.Count() <= 0 {
+		if app.buffer.Count() <= 0 {
 			return nil
 		}
-		if rowIndex >= buffer.Count() {
-			rowIndex--
-			colIndex = LINE_SIZE
+		if app.rowIndex >= app.buffer.Count() {
+			app.rowIndex--
+			app.colIndex = LINE_SIZE
 		}
-		if colIndex >= buffer.WidthAt(rowIndex) {
-			colIndex = buffer.WidthAt(rowIndex) - 1
+		if app.colIndex >= app.buffer.Line(app.rowIndex).Len() {
+			app.colIndex = app.buffer.Line(app.rowIndex).Len() - 1
 		}
 
-		if rowIndex < startRow {
-			startRow = rowIndex
-		} else if rowIndex >= startRow+screenHeight-1 {
-			startRow = rowIndex - (screenHeight - 1) + 1
+		if app.rowIndex < startRow {
+			startRow = app.rowIndex
+		} else if app.rowIndex >= startRow+app.screenHeight-1 {
+			startRow = app.rowIndex - (app.screenHeight - 1) + 1
 		}
 		if lf > 0 {
-			fmt.Fprintf(out, "\r\x1B[%dA", lf)
+			fmt.Fprintf(app.out, "\r\x1B[%dA", lf)
 		} else {
-			io.WriteString(out, "\r")
+			io.WriteString(app.out, "\r")
 		}
 	}
 }
 
 func main() {
-	if err := mains(os.Args[1:]); err != nil {
+	if err := mains(os.Args[1:]); err != nil && err != io.EOF {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}
