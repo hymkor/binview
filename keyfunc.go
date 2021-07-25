@@ -135,12 +135,12 @@ func keyFuncRemoveByte(this *Application) error {
 
 var overWritten = map[string]struct{}{}
 
-func writeFile(buffer *Buffer, tty1 *tty.TTY, out io.Writer, fname string) error {
+func writeFile(buffer *Buffer, tty1 *tty.TTY, out io.Writer, fname string) (string, error) {
 	var err error
 
 	fname, err = getline(out, "write to>", fname)
 	if err != nil {
-		return err
+		return "", err
 	}
 	buffer.ReadAll()
 	fd, err := os.OpenFile(fname, os.O_EXCL|os.O_CREATE, 0666)
@@ -149,7 +149,7 @@ func writeFile(buffer *Buffer, tty1 *tty.TTY, out io.Writer, fname string) error
 			os.Remove(fname)
 		} else {
 			if !yesNo(tty1, out, "Overwrite as \""+fname+"\" [y/n] ?") {
-				return err
+				return "", err
 			}
 			backupName := fname + "~"
 			os.Remove(backupName)
@@ -159,19 +159,21 @@ func writeFile(buffer *Buffer, tty1 *tty.TTY, out io.Writer, fname string) error
 		fd, err = os.OpenFile(fname, os.O_EXCL|os.O_CREATE, 0666)
 	}
 	if err != nil {
-		return err
+		return "", err
 	}
 	for _, s := range buffer.Line {
 		fd.Write(s)
 	}
-	return fd.Close()
+	return fname, fd.Close()
 }
 
 func keyFuncWriteFile(this *Application) error {
-	if err := writeFile(this.buffer, this.tty1, this.out, this.savePath); err != nil {
+	newfname, err := writeFile(this.buffer, this.tty1, this.out, this.savePath)
+	if err != nil {
 		this.message = err.Error()
 	} else {
 		this.dirty = false
+		this.savePath = newfname
 	}
 	return nil
 }
