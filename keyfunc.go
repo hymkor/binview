@@ -66,7 +66,7 @@ func keyFuncGoBeginOfLine(this *Application) error {
 }
 
 func keyFuncGoEndofLine(this *Application) error {
-	this.colIndex = this.buffer.Line(this.rowIndex).Len() - 1
+	this.colIndex = this.buffer.Line[this.rowIndex].Len() - 1
 	return nil
 }
 
@@ -79,7 +79,7 @@ func keyFuncGoBeginOfFile(this *Application) error {
 func keyFuncGoEndOfFile(this *Application) error {
 	this.buffer.ReadAll()
 	this.rowIndex = this.buffer.Count() - 1
-	this.colIndex = this.buffer.Line(this.rowIndex).Len() - 1
+	this.colIndex = this.buffer.Line[this.rowIndex].Len() - 1
 	this.buffer.Reader = nil
 	return nil
 }
@@ -93,14 +93,14 @@ func keyFuncPasteAfter(this *Application) error {
 }
 
 func _addbyte(this *Application, newByte byte) error {
-	if this.colIndex+1 < len(this.buffer.Slices[this.rowIndex]) {
+	if this.colIndex+1 < len(this.buffer.Line[this.rowIndex]) {
 		this.colIndex++
 	} else {
 		this.colIndex = 0
 		this.rowIndex++
 	}
 	this.buffer.InsertAt(this.rowIndex, this.colIndex, newByte)
-	this.isChanged = CHANGED
+	this.dirty = true
 	return nil
 }
 
@@ -118,7 +118,7 @@ func keyFuncPasteBefore(this *Application) error {
 
 func _insertByte(this *Application, value byte) error {
 	this.buffer.InsertAt(this.rowIndex, this.colIndex, value)
-	this.isChanged = CHANGED
+	this.dirty = true
 	return nil
 }
 
@@ -127,9 +127,9 @@ func keyFuncInsertByte(this *Application) error {
 }
 
 func keyFuncRemoveByte(this *Application) error {
-	this.clipBoard.Push(this.buffer.Slices[this.rowIndex][this.colIndex])
+	this.clipBoard.Push(this.buffer.Line[this.rowIndex][this.colIndex])
 	this.buffer.deleteOne(this.rowIndex, this.colIndex)
-	this.isChanged = CHANGED
+	this.dirty = true
 	return nil
 }
 
@@ -161,7 +161,7 @@ func writeFile(buffer *Buffer, tty1 *tty.TTY, out io.Writer, fname string) error
 	if err != nil {
 		return err
 	}
-	for _, s := range buffer.Slices {
+	for _, s := range buffer.Line {
 		fd.Write(s)
 	}
 	return fd.Close()
@@ -171,7 +171,7 @@ func keyFuncWriteFile(this *Application) error {
 	if err := writeFile(this.buffer, this.tty1, this.out, this.savePath); err != nil {
 		this.message = err.Error()
 	} else {
-		this.isChanged = UNCHANGED
+		this.dirty = false
 	}
 	return nil
 }
@@ -185,7 +185,7 @@ func keyFuncReplaceByte(this *Application) error {
 	}
 	if n, err := strconv.ParseUint(bytes, 0, 8); err == nil {
 		this.buffer.SetByte(this.rowIndex, this.colIndex, byte(n))
-		this.isChanged = CHANGED
+		this.dirty = true
 	} else {
 		this.message = err.Error()
 	}

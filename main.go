@@ -162,11 +162,6 @@ const (
 	_KEY_DEL    = "\x1B[3~"
 )
 
-const (
-	UNCHANGED = ' '
-	CHANGED   = '*'
-)
-
 type Clip struct {
 	data []byte
 }
@@ -203,10 +198,18 @@ type Application struct {
 	rowIndex     int
 	buffer       *Buffer
 	clipBoard    *Clip
-	isChanged    rune
+	dirty        bool
 	savePath     string
 	message      string
 	cache        map[int]string
+}
+
+func (app *Application) ChangedMark() rune {
+	if app.dirty {
+		return '*'
+	} else {
+		return ' '
+	}
 }
 
 func NewApplication(in io.Reader, defaultName string) (*Application, error) {
@@ -228,7 +231,7 @@ func NewApplication(in io.Reader, defaultName string) (*Application, error) {
 
 	io.WriteString(this.out, _ANSI_CURSOR_OFF)
 
-	this.isChanged = UNCHANGED
+	this.dirty = false
 	this.message = ""
 
 	return this, nil
@@ -299,11 +302,11 @@ func mains(args []string) error {
 			io.WriteString(app.out, _ANSI_RESET)
 			app.message = ""
 		} else if 0 <= app.rowIndex && app.rowIndex < app.buffer.Count() {
-			if 0 <= app.colIndex && app.colIndex < app.buffer.Line(app.rowIndex).Len() {
+			if 0 <= app.colIndex && app.colIndex < app.buffer.Line[app.rowIndex].Len() {
 				fmt.Fprintf(app.out, "\x1B[0;33;1m%[3]c(%08[1]X):0x%02[2]X=%-4[2]d",
 					app.rowIndex*LINE_SIZE+app.colIndex,
 					app.buffer.Byte(app.rowIndex, app.colIndex),
-					app.isChanged)
+					app.ChangedMark())
 
 				theRune, thePosInRune, theLenOfRune :=
 					app.buffer.Rune(app.rowIndex, app.colIndex)
@@ -335,8 +338,8 @@ func mains(args []string) error {
 			app.rowIndex--
 			app.colIndex = LINE_SIZE
 		}
-		if app.colIndex >= app.buffer.Line(app.rowIndex).Len() {
-			app.colIndex = app.buffer.Line(app.rowIndex).Len() - 1
+		if app.colIndex >= app.buffer.Line[app.rowIndex].Len() {
+			app.colIndex = app.buffer.Line[app.rowIndex].Len() - 1
 		}
 
 		if app.rowIndex < startRow {
