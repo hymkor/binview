@@ -3,6 +3,7 @@ Release notes
 
 - Fix the problem that the utf8-rune on the line boundary could not be drawn
 - `w`: restore the last saved filename as the next saving
+- `w`: show `canceled` instead of `^C` when ESCAPE key is pressed
 
 0.2.1
 -----
