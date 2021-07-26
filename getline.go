@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -24,7 +25,11 @@ func getline(out io.Writer, prompt string, defaultStr string) (string, error) {
 	}
 	defer io.WriteString(out, _ANSI_CURSOR_OFF)
 	editor.BindKeySymbol(readline.K_ESCAPE, readline.F_INTR)
-	return editor.ReadLine(context.Background())
+	text, err := editor.ReadLine(context.Background())
+	if err == readline.CtrlC {
+		return "", errors.New("Canceled")
+	}
+	return text, err
 }
 
 func getkey(tty1 *tty.TTY) (string, error) {
