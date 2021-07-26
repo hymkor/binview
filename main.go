@@ -212,13 +212,12 @@ func (app *Application) ChangedMark() rune {
 	}
 }
 
-func NewApplication(in io.Reader, defaultName string) (*Application, error) {
+func NewApplication(in io.Reader, out io.Writer, defaultName string) (*Application, error) {
 	this := &Application{}
 
 	this.savePath = defaultName
 	this.in = in
-
-	this.out = colorable.NewColorableStdout()
+	this.out = out
 
 	var err error
 	this.tty1, err = tty.Open()
@@ -251,6 +250,7 @@ func mains(args []string) error {
 	if disable != nil {
 		defer disable()
 	}
+	out := colorable.NewColorableStdout()
 
 	in, err := NewArgf(args)
 	if err != nil {
@@ -266,7 +266,7 @@ func mains(args []string) error {
 		}
 	}
 
-	app, err := NewApplication(in, savePath)
+	app, err := NewApplication(in, out, savePath)
 	if err != nil {
 		return err
 	}
