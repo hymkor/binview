@@ -96,7 +96,12 @@ var cache = map[int]string{}
 
 const CELL_WIDTH = 12
 
-func (b *Buffer) View(csrpos, csrlin, w, h int, out io.Writer) (int, error) {
+func (app *Application) View(startRow int) (int, error) {
+	b := app.buffer
+	csrpos := app.colIndex
+	csrlin := app.rowIndex - startRow
+	h := app.screenHeight - 1
+	out := app.out
 	count := 0
 	lfCount := 0
 	for {
@@ -287,7 +292,7 @@ func mains(args []string) error {
 			io.WriteString(app.out, _ANSI_CURSOR_OFF)
 		}
 		app.buffer.CursorY = startRow
-		lf, err := app.buffer.View(app.colIndex, app.rowIndex-startRow, app.screenWidth-1, app.screenHeight-1, app.out)
+		lf, err := app.View(startRow)
 		if err != nil {
 			return err
 		}
