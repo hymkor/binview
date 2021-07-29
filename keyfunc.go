@@ -199,7 +199,54 @@ func keyFuncRepaint(this *Application) error {
 	return nil
 }
 
+func gotoAddress(app *Application, address int64) error {
+	prevousAddress := int64(app.rowIndex)*int64(LINE_SIZE) + int64(app.colIndex)
+	app.rowIndex = int(address / int64(LINE_SIZE))
+	app.colIndex = int(address % int64(LINE_SIZE))
+
+	if prevousAddress >= address {
+		// move backward.
+		app.buffer.CursorY = app.rowIndex
+		return nil
+	}
+
+	// move forward.
+	if app.rowIndex >= app.buffer.Count() {
+		app.buffer.ReadAll()
+	}
+	if app.rowIndex >= app.buffer.Count() {
+		app.rowIndex = app.buffer.Count() - 1
+	}
+	if app.rowIndex >= app.buffer.Count()-1 {
+		if app.colIndex >= app.buffer.LastLine().Len() {
+			app.colIndex = app.buffer.LastLine().Len() - 1
+		}
+	}
+	app.buffer.CursorY = app.rowIndex - app.screenHeight
+	if app.buffer.CursorY < 0 {
+		app.buffer.CursorY = 0
+	}
+	return nil
+
+}
+
+func keyFuncGoTo(app *Application) error {
+	addressStr, err := getline(app.out, "Goto Offset>", "0x")
+	if err != nil {
+		app.message = err.Error()
+		return nil
+	}
+	address, err := strconv.ParseInt(addressStr, 0, 64)
+	if err != nil {
+		app.message = err.Error()
+		return nil
+	}
+	return gotoAddress(app, address)
+
+}
+
 var jumpTable = map[string]func(this *Application) error{
+	"&":         keyFuncGoTo,
 	"q":         keyFuncQuit,
 	_KEY_ESC:    keyFuncQuit,
 	"j":         keyFuncNext,
