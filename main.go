@@ -24,6 +24,32 @@ const (
 	ERASE_SCRN_AFTER = "\x1B[0J"
 )
 
+// for Line feed
+const (
+	_ARROW_POINTING_DOWNWARDS_THEN_CURVING_LEFTWARDS = '\u2936'
+	_DOWNWARDS_ARROW_WITH_CORNER_LEFTWARDS           = '\u21B5'
+	_DOWNWARDS_ARROW_WITH_TIP_LEFTWARDS              = '\u21B2'
+	_RETURN_SYMBOL                                   = '\u23CE'
+	_SYMBOL_FOR_NEWLINE                              = '\u2424'
+	_SYMBOL_FOR_LINE_FEED                            = '\u240A'
+	_DOWNWARDS_ARROW                                 = '\u2193' // wide
+	_HALFWIDTH_DOWNWARDS_ARROW                       = '\uFFEC'
+)
+
+// for carriage return
+const (
+	_SYMBOL_FOR_CARRIAGE_RETURN = '\u240D' // CR
+	_LEFTWARDS_ARROW            = '\u2190' // wide
+	_HALFWIDTH_LEFTWARDS_ARROW  = '\uFFE9' // <-
+)
+
+// for tab
+const (
+	_SYMBOL_FOR_HORIZONTAL_TABULATION        = '\u2409' // HT
+	_RIGHTWARDS_ARROW_TO_BAR                 = '\u21E5' // ->|
+	_RIGHTWARDS_TRIANGLE_HEADED_ARROW_TO_BAR = '\u2B72' // ->|
+)
+
 const LINE_SIZE = 16
 
 // See. en.wikipedia.org/wiki/Unicode_control_characters#Control_pictures
@@ -65,7 +91,13 @@ func draw(out io.Writer, address int, cursorPos int, current []byte, next []byte
 	for i := 0; i < len(current); {
 		c := rune(joinline[i])
 		length := 1
-		if c < ' ' || c == '\u007F' {
+		if c == '\u000A' {
+			c = _HALFWIDTH_DOWNWARDS_ARROW
+		} else if c == '\u000D' {
+			c = _HALFWIDTH_LEFTWARDS_ARROW
+		} else if c == '\t' {
+			c = _RIGHTWARDS_ARROW_TO_BAR
+		} else if c < ' ' || c == '\u007F' {
 			c = '.'
 		} else if c >= utf8.RuneSelf {
 			c, length = utf8.DecodeRune(joinline[i:])
