@@ -128,48 +128,60 @@ var cache = map[int]string{}
 
 const CELL_WIDTH = 12
 
-func (app *Application) View(startRow int) (int, error) {
-	b := app.buffer
-	csrpos := app.colIndex
-	csrlin := app.rowIndex - startRow
+func (app *Application) View() (int, error) {
 	h := app.screenHeight - 1
 	out := app.out
 	count := 0
-	lfCount := 0
-	for {
-		if count >= h {
-			return lfCount, nil
-		}
-		record, address, err := b.Fetch()
-		if err == io.EOF {
-			return lfCount, nil
-		}
+
+	if app.buffer.Len() <= 0 {
+		var err error
+		app.cursor, err = app.buffer.fetch()
 		if err != nil {
-			return lfCount, err
+			return 0, err
 		}
-		if count > 0 {
-			lfCount++
-			io.WriteString(out, "\r\n") // "\r" is for Linux and go-tty
-		}
+	}
+	bytes := app.cursor.Bytes()
+	address := app.cursor.Address()
+	for {
 		var cursorPos int
-		if count == csrlin {
-			cursorPos = csrpos
+		if address == app.rowIndex.Address() {
+			cursorPos = app.colIndex
 		} else {
 			cursorPos = -1
 		}
-
-		nextBytes, _, err := b.PreFetch()
-		if err != nil {
-			nextBytes = nil
+		var fetchErr error
+		if !app.cursor.Next() {
+			app.cursor, fetchErr = app.buffer.fetch()
 		}
+		var nextBytes []byte
+		var nextAddress int
+		if app.cursor != nil {
+			nextBytes = app.cursor.Bytes()
+			nextAddress = app.cursor.Address()
+		}
+
 		var buffer strings.Builder
-		draw(&buffer, address, cursorPos, record, nextBytes)
+		draw(&buffer, address, cursorPos, bytes, nextBytes)
 		line := buffer.String()
+
 		if f := cache[count]; f != line {
 			io.WriteString(out, line)
 			cache[count] = line
 		}
+
+		if fetchErr == io.EOF {
+			return count + 1, nil
+		}
+		if fetchErr != nil {
+			return count + 1, fetchErr
+		}
+		bytes = nextBytes
+		address = nextAddress
 		count++
+		if count >= h {
+			return count, nil
+		}
+		io.WriteString(out, "\r\n") // "\r" is for Linux and go-tty
 	}
 }
 
@@ -232,7 +244,8 @@ type Application struct {
 	screenWidth  int
 	screenHeight int
 	colIndex     int
-	rowIndex     int
+	rowIndex     *Cursor
+	cursor       *Cursor
 	buffer       *Buffer
 	clipBoard    *Clip
 	dirty        bool
@@ -264,6 +277,8 @@ func NewApplication(in io.Reader, out io.Writer, defaultName string) (*Applicati
 	this.clipBoard = NewClip()
 
 	this.buffer = NewBuffer(this.in)
+	this.rowIndex = &Cursor{buffer: this.buffer, index: 0}
+	this.cursor = &Cursor{buffer: this.buffer, index: 0}
 
 	io.WriteString(this.out, _ANSI_CURSOR_OFF)
 
@@ -323,12 +338,12 @@ func mains(args []string) error {
 			lastHeight = app.screenHeight
 			io.WriteString(app.out, _ANSI_CURSOR_OFF)
 		}
-		app.buffer.CursorY = startRow
-		lf, err := app.View(startRow)
+		app.cursor = &Cursor{buffer: app.buffer, index: startRow}
+		lf, err := app.View()
 		if err != nil {
 			return err
 		}
-		if app.buffer.Count() <= 0 {
+		if app.buffer.Len() <= 0 {
 			return nil
 		}
 		io.WriteString(app.out, "\r\n") // \r is for Linux & go-tty
@@ -338,15 +353,14 @@ func mains(args []string) error {
 			io.WriteString(app.out, runewidth.Truncate(app.message, app.screenWidth-1, ""))
 			io.WriteString(app.out, _ANSI_RESET)
 			app.message = ""
-		} else if 0 <= app.rowIndex && app.rowIndex < app.buffer.Count() {
-			if 0 <= app.colIndex && app.colIndex < app.buffer.Line[app.rowIndex].Len() {
+		} else if 0 <= app.rowIndex.index && app.rowIndex.index < app.buffer.Len() {
+			if 0 <= app.colIndex && app.colIndex < app.rowIndex.Len() {
 				fmt.Fprintf(app.out, "\x1B[0;33;1m%[3]c(%08[1]X):0x%02[2]X=%-4[2]d",
-					app.rowIndex*LINE_SIZE+app.colIndex,
-					app.buffer.Byte(app.rowIndex, app.colIndex),
+					app.rowIndex.Address()+app.colIndex,
+					app.rowIndex.Byte(app.colIndex),
 					app.ChangedMark())
 
-				theRune, thePosInRune, theLenOfRune :=
-					app.buffer.Rune(app.rowIndex, app.colIndex)
+				theRune, thePosInRune, theLenOfRune := app.rowIndex.Rune(app.colIndex)
 				if theRune != utf8.RuneError {
 					fmt.Fprintf(app.out, "(%d/%d:U+%X)",
 						thePosInRune+1,
@@ -368,21 +382,21 @@ func mains(args []string) error {
 				return err
 			}
 		}
-		if app.buffer.Count() <= 0 {
+		if app.buffer.Len() <= 0 {
 			return nil
 		}
-		if app.rowIndex >= app.buffer.Count() {
-			app.rowIndex--
+		if app.rowIndex.index >= app.buffer.Len() {
+			app.rowIndex.Prev()
 			app.colIndex = LINE_SIZE
 		}
-		if app.colIndex >= app.buffer.Line[app.rowIndex].Len() {
-			app.colIndex = app.buffer.Line[app.rowIndex].Len() - 1
+		if app.colIndex >= app.rowIndex.Len() {
+			app.colIndex = app.rowIndex.Len() - 1
 		}
 
-		if app.rowIndex < startRow {
-			startRow = app.rowIndex
-		} else if app.rowIndex >= startRow+app.screenHeight-1 {
-			startRow = app.rowIndex - (app.screenHeight - 1) + 1
+		if app.rowIndex.index < startRow {
+			startRow = app.rowIndex.index
+		} else if app.rowIndex.index >= startRow+app.screenHeight-1 {
+			startRow = app.rowIndex.index - (app.screenHeight - 1) + 1
 		}
 		if lf > 0 {
 			fmt.Fprintf(app.out, "\r\x1B[%dA", lf)

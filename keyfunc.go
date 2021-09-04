@@ -10,12 +10,10 @@ import (
 )
 
 func keyFuncNext(this *Application) error {
-	if this.rowIndex < this.buffer.Count()-1 {
-		this.rowIndex++
-	} else if _, _, err := this.buffer.Fetch(); err == nil {
-		this.rowIndex++
-	} else if err != io.EOF {
-		return err
+	if !this.rowIndex.Next() {
+		if p, err := this.buffer.fetch(); err == nil {
+			this.rowIndex = p
+		}
 	}
 	return nil
 }
@@ -23,17 +21,15 @@ func keyFuncNext(this *Application) error {
 func keyFuncBackword(this *Application) error {
 	if this.colIndex > 0 {
 		this.colIndex--
-	} else if this.rowIndex > 0 {
-		this.rowIndex--
+	} else {
+		this.rowIndex.Prev()
 		this.colIndex = LINE_SIZE - 1
 	}
 	return nil
 }
 
 func keyFuncPrevious(this *Application) error {
-	if this.rowIndex > 0 {
-		this.rowIndex--
-	}
+	this.rowIndex.Prev()
 	return nil
 }
 
@@ -48,11 +44,10 @@ func keyFuncQuit(this *Application) error {
 func keyFuncForward(this *Application) error {
 	if this.colIndex < LINE_SIZE-1 {
 		this.colIndex++
-	} else if this.rowIndex < this.buffer.Count()-1 {
-		this.rowIndex++
+	} else if this.rowIndex.Next() {
 		this.colIndex = 0
-	} else if _, _, err := this.buffer.Fetch(); err == nil {
-		this.rowIndex++
+	} else if p, err := this.buffer.fetch(); err == nil {
+		this.rowIndex = p
 		this.colIndex = 0
 	} else if err != io.EOF {
 		return err
@@ -66,20 +61,20 @@ func keyFuncGoBeginOfLine(this *Application) error {
 }
 
 func keyFuncGoEndofLine(this *Application) error {
-	this.colIndex = this.buffer.Line[this.rowIndex].Len() - 1
+	this.colIndex = this.rowIndex.Len() - 1
 	return nil
 }
 
 func keyFuncGoBeginOfFile(this *Application) error {
-	this.rowIndex = 0
+	this.rowIndex = this.buffer.Begin()
 	this.colIndex = 0
 	return nil
 }
 
 func keyFuncGoEndOfFile(this *Application) error {
 	this.buffer.ReadAll()
-	this.rowIndex = this.buffer.Count() - 1
-	this.colIndex = this.buffer.Line[this.rowIndex].Len() - 1
+	this.rowIndex.GotoEnd()
+	this.colIndex = this.rowIndex.Len() - 1
 	this.buffer.Reader = nil
 	return nil
 }
@@ -93,11 +88,11 @@ func keyFuncPasteAfter(this *Application) error {
 }
 
 func _addbyte(this *Application, newByte byte) error {
-	if this.colIndex+1 < len(this.buffer.Line[this.rowIndex]) {
+	if this.colIndex+1 < this.rowIndex.Len() {
 		this.colIndex++
 	} else {
 		this.colIndex = 0
-		this.rowIndex++
+		this.rowIndex.Next()
 	}
 	this.buffer.InsertAt(this.rowIndex, this.colIndex, newByte)
 	this.dirty = true
@@ -127,7 +122,7 @@ func keyFuncInsertByte(this *Application) error {
 }
 
 func keyFuncRemoveByte(this *Application) error {
-	this.clipBoard.Push(this.buffer.Line[this.rowIndex][this.colIndex])
+	this.clipBoard.Push(this.rowIndex.Byte(this.colIndex))
 	this.buffer.deleteOne(this.rowIndex, this.colIndex)
 	this.dirty = true
 	return nil
@@ -180,13 +175,13 @@ func keyFuncWriteFile(this *Application) error {
 
 func keyFuncReplaceByte(this *Application) error {
 	bytes, err := getline(this.out, "replace>",
-		fmt.Sprintf("0x%02X", this.buffer.Byte(this.rowIndex, this.colIndex)))
+		fmt.Sprintf("0x%02X", this.rowIndex.Byte(this.colIndex)))
 	if err != nil {
 		this.message = err.Error()
 		return nil
 	}
 	if n, err := strconv.ParseUint(bytes, 0, 8); err == nil {
-		this.buffer.SetByte(this.rowIndex, this.colIndex, byte(n))
+		this.rowIndex.SetByte(this.colIndex, byte(n))
 		this.dirty = true
 	} else {
 		this.message = err.Error()
@@ -200,34 +195,30 @@ func keyFuncRepaint(this *Application) error {
 }
 
 func gotoAddress(app *Application, address int64) error {
-	prevousAddress := int64(app.rowIndex)*int64(LINE_SIZE) + int64(app.colIndex)
-	app.rowIndex = int(address / int64(LINE_SIZE))
+	prevousAddress := int64(app.rowIndex.Address()) + int64(app.colIndex)
+	rowIndex := int(address / int64(LINE_SIZE))
 	app.colIndex = int(address % int64(LINE_SIZE))
 
 	if prevousAddress >= address {
 		// move backward.
-		app.buffer.CursorY = app.rowIndex
+		app.cursor = &Cursor{buffer: app.buffer, index: rowIndex}
+		app.rowIndex = &Cursor{buffer: app.buffer, index: rowIndex}
 		return nil
 	}
 
 	// move forward.
-	if app.rowIndex >= app.buffer.Count() {
-		app.buffer.ReadAll()
-	}
-	if app.rowIndex >= app.buffer.Count() {
-		app.rowIndex = app.buffer.Count() - 1
-	}
-	if app.rowIndex >= app.buffer.Count()-1 {
-		if app.colIndex >= app.buffer.LastLine().Len() {
-			app.colIndex = app.buffer.LastLine().Len() - 1
+	for {
+		if !app.rowIndex.Next() {
+			app.buffer.ReadAll()
+			if !app.rowIndex.Next() {
+				return nil
+			}
+		}
+		if address < int64(app.rowIndex.Address()+LINE_SIZE) {
+			app.colIndex = int(address - int64(app.rowIndex.Address()))
+			return nil
 		}
 	}
-	app.buffer.CursorY = app.rowIndex - app.screenHeight
-	if app.buffer.CursorY < 0 {
-		app.buffer.CursorY = 0
-	}
-	return nil
-
 }
 
 func keyFuncGoTo(app *Application) error {
@@ -242,7 +233,6 @@ func keyFuncGoTo(app *Application) error {
 		return nil
 	}
 	return gotoAddress(app, address)
-
 }
 
 var jumpTable = map[string]func(this *Application) error{
