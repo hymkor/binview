@@ -13,6 +13,7 @@ else
 endif
 
 all:
+	go fmt
 	$(SET) "CGO_ENABLED=0" && go build $(GOOPT)
 
 package:
