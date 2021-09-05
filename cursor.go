@@ -1,49 +1,60 @@
 package main
 
 import (
+	"container/list"
 	"unicode/utf8"
 )
 
 type Cursor struct {
-	buffer *Buffer
-	index  int
+	buffer  *Buffer
+	index   int
+	element *list.Element
 }
 
+func (c *Cursor) Clone() *Cursor {
+	tmp := *c
+	return &tmp
+}
 func (c *Cursor) Address() int      { return c.index * LINE_SIZE }
-func (c *Cursor) Bytes() Line       { return c.buffer.Line[c.index] }
+func (c *Cursor) Bytes() Line       { return c.element.Value.(Line) }
 func (c *Cursor) Byte(pos int) byte { return c.Bytes()[pos] }
 func (c *Cursor) SetByte(pos int, value byte) {
 	c.Bytes()[pos] = value
 }
 func (c *Cursor) Len() int { return len(c.Bytes()) }
 
-func (c *Cursor) Update(value []byte) {
-	c.buffer.Line[c.index] = value
+func (c *Cursor) Update(value Line) {
+	c.element.Value = value
 }
 
 func (c *Cursor) Chop() {
-	value := c.buffer.Line[c.index]
-	c.buffer.Line[c.index] = value[:len(value)-1]
+	value := c.Bytes()
+	c.Update(value[:len(value)-1])
 }
 
 func (c *Cursor) Next() bool {
-	if c.index >= c.buffer.Len()-1 {
+	next := c.element.Next()
+	if next == nil {
 		return false
 	}
 	c.index++
+	c.element = next
 	return true
 }
 
 func (c *Cursor) Prev() bool {
-	if c.index <= 0 {
+	prev := c.element.Prev()
+	if prev == nil {
 		return false
 	}
 	c.index--
+	c.element = prev
 	return true
 }
 
 func (cursor *Cursor) GotoEnd() {
 	cursor.index = cursor.buffer.Len() - 1
+	cursor.element = cursor.buffer.lines.Back()
 }
 
 func (cursor Cursor) Rune(c int) (rune, int, int) {

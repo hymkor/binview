@@ -135,13 +135,14 @@ func (app *Application) View() (int, error) {
 
 	if app.buffer.Len() <= 0 {
 		var err error
-		app.cursor, err = app.buffer.fetch()
+		app.window, err = app.buffer.fetch()
 		if err != nil {
 			return 0, err
 		}
 	}
-	bytes := app.cursor.Bytes()
-	address := app.cursor.Address()
+	cursor := app.window.Clone()
+	bytes := cursor.Bytes()
+	address := cursor.Address()
 	for {
 		var cursorPos int
 		if address == app.rowIndex.Address() {
@@ -150,14 +151,14 @@ func (app *Application) View() (int, error) {
 			cursorPos = -1
 		}
 		var fetchErr error
-		if !app.cursor.Next() {
-			app.cursor, fetchErr = app.buffer.fetch()
+		if !cursor.Next() {
+			cursor, fetchErr = app.buffer.fetch()
 		}
 		var nextBytes []byte
 		var nextAddress int
-		if app.cursor != nil {
-			nextBytes = app.cursor.Bytes()
-			nextAddress = app.cursor.Address()
+		if cursor != nil {
+			nextBytes = cursor.Bytes()
+			nextAddress = cursor.Address()
 		}
 
 		var buffer strings.Builder
@@ -170,17 +171,17 @@ func (app *Application) View() (int, error) {
 		}
 
 		if fetchErr == io.EOF {
-			return count + 1, nil
+			return count, nil
 		}
 		if fetchErr != nil {
-			return count + 1, fetchErr
+			return count, fetchErr
 		}
 		bytes = nextBytes
 		address = nextAddress
-		count++
-		if count >= h {
+		if count+1 >= h {
 			return count, nil
 		}
+		count++
 		io.WriteString(out, "\r\n") // "\r" is for Linux and go-tty
 	}
 }
@@ -245,13 +246,17 @@ type Application struct {
 	screenHeight int
 	colIndex     int
 	rowIndex     *Cursor
-	cursor       *Cursor
+	window       *Cursor
 	buffer       *Buffer
 	clipBoard    *Clip
 	dirty        bool
 	savePath     string
 	message      string
 	cache        map[int]string
+}
+
+func (app *Application) dataHeight() int {
+	return app.screenHeight - 1
 }
 
 func (app *Application) ChangedMark() rune {
@@ -277,8 +282,8 @@ func NewApplication(in io.Reader, out io.Writer, defaultName string) (*Applicati
 	this.clipBoard = NewClip()
 
 	this.buffer = NewBuffer(this.in)
-	this.rowIndex = &Cursor{buffer: this.buffer, index: 0}
-	this.cursor = &Cursor{buffer: this.buffer, index: 0}
+	this.rowIndex = this.buffer.Begin()
+	this.window = this.buffer.Begin()
 
 	io.WriteString(this.out, _ANSI_CURSOR_OFF)
 
@@ -324,8 +329,6 @@ func mains(args []string) error {
 	}
 	defer app.Close()
 
-	startRow := 0
-
 	var lastWidth, lastHeight int
 	for {
 		app.screenWidth, app.screenHeight, err = app.tty1.Size()
@@ -338,7 +341,6 @@ func mains(args []string) error {
 			lastHeight = app.screenHeight
 			io.WriteString(app.out, _ANSI_CURSOR_OFF)
 		}
-		app.cursor = &Cursor{buffer: app.buffer, index: startRow}
 		lf, err := app.View()
 		if err != nil {
 			return err
@@ -393,10 +395,15 @@ func mains(args []string) error {
 			app.colIndex = app.rowIndex.Len() - 1
 		}
 
-		if app.rowIndex.index < startRow {
-			startRow = app.rowIndex.index
-		} else if app.rowIndex.index >= startRow+app.screenHeight-1 {
-			startRow = app.rowIndex.index - (app.screenHeight - 1) + 1
+		if app.rowIndex.index < app.window.index {
+			app.window = app.rowIndex.Clone()
+		} else if app.rowIndex.index >= app.window.index+app.screenHeight-1 {
+			app.window = app.rowIndex.Clone()
+			for i := app.screenHeight - 1 + 1; i > 0; i-- {
+				if !app.window.Prev() {
+					break
+				}
+			}
 		}
 		if lf > 0 {
 			fmt.Fprintf(app.out, "\r\x1B[%dA", lf)

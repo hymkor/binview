@@ -2,40 +2,54 @@ package main
 
 import (
 	"bufio"
+	"container/list"
 	"io"
 )
 
 type Buffer struct {
-	Line []Line
+	lines *list.List
 	*bufio.Reader
 }
 
 func NewBuffer(r io.Reader) *Buffer {
 	return &Buffer{
-		Line:   []Line{},
+		lines:  list.New(),
 		Reader: bufio.NewReader(r),
 	}
 }
 
-func (b *Buffer) Add(tmp Line) { b.Line = append(b.Line, tmp) }
-func (b *Buffer) Len() int     { return len(b.Line) }
+func (b *Buffer) Add(tmp Line) {
+	b.lines.PushBack(tmp)
+}
+
+func (b *Buffer) Len() int {
+	return b.lines.Len()
+}
+
 func (b *Buffer) LastLine() Line {
-	return b.Line[len(b.Line)-1]
+	return b.lines.Back().Value.(Line)
 }
 
 func (b *Buffer) SetLastLine(line []byte) {
-	b.Line[len(b.Line)-1] = line
+	b.lines.Back().Value = line
 }
 
 func (b *Buffer) DropLastLine() {
-	b.Line = b.Line[:len(b.Line)-1]
+	b.lines.Remove(b.lines.Back())
 }
 
 func (b *Buffer) Begin() *Cursor {
-	return &Cursor{buffer: b, index: 0}
+	if b.Len() <= 0 {
+		p, err := b.fetch()
+		if err != nil {
+			return nil
+		}
+		return p
+	}
+	return &Cursor{buffer: b, index: 0, element: b.lines.Front()}
 }
 func (b *Buffer) End() *Cursor {
-	return &Cursor{buffer: b, index: b.Len() - 1}
+	return &Cursor{buffer: b, index: b.Len() - 1, element: b.lines.Back()}
 }
 
 func (b *Buffer) appendLine() error {
@@ -64,8 +78,7 @@ func (b *Buffer) fetch() (*Cursor, error) {
 		return nil, io.EOF
 	}
 	var err error
-	if b.Line == nil || len(b.Line) <= 0 ||
-		len(b.Line[len(b.Line)-1]) == LINE_SIZE {
+	if b.Len() <= 0 || b.End().Len() >= LINE_SIZE {
 		err = b.appendLine()
 	} else {
 		err = b.appendTail()
@@ -73,7 +86,7 @@ func (b *Buffer) fetch() (*Cursor, error) {
 	if err != nil {
 		b.Reader = nil
 	}
-	return &Cursor{buffer: b, index: len(b.Line) - 1}, err
+	return b.End(), err
 }
 
 func (b *Buffer) ReadAll() {
@@ -104,7 +117,7 @@ func (b *Buffer) UnshiftLines(_rowIndex *Cursor, carry byte) {
 	if rowIndex.Len() < LINE_SIZE {
 		rowIndex.Update(append(rowIndex.Bytes(), carry))
 	} else {
-		b.Line = append(b.Line, []byte{carry})
+		b.lines.PushBack([]byte{carry})
 	}
 }
 

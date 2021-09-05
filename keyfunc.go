@@ -15,6 +15,9 @@ func keyFuncNext(this *Application) error {
 			this.rowIndex = p
 		}
 	}
+	for this.rowIndex.index-this.window.index >= this.dataHeight() {
+		this.window.Next()
+	}
 	return nil
 }
 
@@ -75,6 +78,10 @@ func keyFuncGoEndOfFile(this *Application) error {
 	this.buffer.ReadAll()
 	this.rowIndex.GotoEnd()
 	this.colIndex = this.rowIndex.Len() - 1
+
+	this.window = this.rowIndex.Clone()
+	for this.rowIndex.index-this.window.index < this.dataHeight()-1 && this.window.Prev() {
+	}
 	this.buffer.Reader = nil
 	return nil
 }
@@ -156,8 +163,12 @@ func writeFile(buffer *Buffer, tty1 *tty.TTY, out io.Writer, fname string) (stri
 	if err != nil {
 		return "", err
 	}
-	for _, s := range buffer.Line {
-		fd.Write(s)
+	p := buffer.Begin()
+	for p != nil {
+		fd.Write(p.Bytes())
+		if !p.Next() {
+			break
+		}
 	}
 	return fname, fd.Close()
 }
@@ -196,29 +207,32 @@ func keyFuncRepaint(this *Application) error {
 
 func gotoAddress(app *Application, address int64) error {
 	prevousAddress := int64(app.rowIndex.Address()) + int64(app.colIndex)
-	rowIndex := int(address / int64(LINE_SIZE))
 	app.colIndex = int(address % int64(LINE_SIZE))
 
 	if prevousAddress >= address {
 		// move backward.
-		app.cursor = &Cursor{buffer: app.buffer, index: rowIndex}
-		app.rowIndex = &Cursor{buffer: app.buffer, index: rowIndex}
+		for int64(app.rowIndex.Address()) > address && app.rowIndex.Prev() {
+		}
+		app.window.Clone()
 		return nil
 	}
 
 	// move forward.
-	for {
+	for address >= int64(app.rowIndex.Address()+LINE_SIZE) {
 		if !app.rowIndex.Next() {
 			app.buffer.ReadAll()
 			if !app.rowIndex.Next() {
-				return nil
+				break
 			}
 		}
-		if address < int64(app.rowIndex.Address()+LINE_SIZE) {
-			app.colIndex = int(address - int64(app.rowIndex.Address()))
-			return nil
+	}
+	app.window = app.rowIndex.Clone()
+	for i := app.screenHeight - 2; i > 0; i-- {
+		if !app.window.Prev() {
+			break
 		}
 	}
+	return nil
 }
 
 func keyFuncGoTo(app *Application) error {
