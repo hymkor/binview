@@ -17,10 +17,8 @@ func NewBuffer(r io.Reader) *Buffer {
 	}
 }
 
-func (b *Buffer) Add(tmp Line)                { b.Line = append(b.Line, tmp) }
-func (b *Buffer) Len() int                    { return len(b.Line) }
-func (b *Buffer) Byte(r, c int) byte          { return b.Line[r][c] }
-func (b *Buffer) SetByte(r, c int, data byte) { b.Line[r][c] = data }
+func (b *Buffer) Add(tmp Line) { b.Line = append(b.Line, tmp) }
+func (b *Buffer) Len() int     { return len(b.Line) }
 func (b *Buffer) LastLine() Line {
 	return b.Line[len(b.Line)-1]
 }
@@ -33,12 +31,11 @@ func (b *Buffer) DropLastLine() {
 	b.Line = b.Line[:len(b.Line)-1]
 }
 
-func (b *Buffer) Shift(r int, appendByte byte) byte {
-	return b.Line[r].Shift(appendByte)
+func (b *Buffer) Begin() *Cursor {
+	return &Cursor{buffer: b, index: 0}
 }
-
-func (b *Buffer) Unshift(r int, appendByte byte) byte {
-	return b.Line[r].Unshift(appendByte)
+func (b *Buffer) End() *Cursor {
+	return &Cursor{buffer: b, index: b.Len() - 1}
 }
 
 func (b *Buffer) appendLine() error {

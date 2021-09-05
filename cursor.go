@@ -17,13 +17,6 @@ func (c *Cursor) SetByte(pos int, value byte) {
 }
 func (c *Cursor) Len() int { return len(c.Bytes()) }
 
-func (b *Buffer) Begin() *Cursor {
-	return &Cursor{buffer: b, index: 0}
-}
-func (b *Buffer) End() *Cursor {
-	return &Cursor{buffer: b, index: b.Len() - 1}
-}
-
 func (c *Cursor) Update(value []byte) {
 	c.buffer.Line[c.index] = value
 }
