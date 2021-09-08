@@ -11,7 +11,7 @@ import (
 
 func keyFuncNext(this *Application) error {
 	if !this.rowIndex.Next() {
-		if p, err := this.buffer.fetch(); err == nil {
+		if p, err := this.buffer.Fetch(); err == nil {
 			this.rowIndex = p
 		}
 	}
@@ -49,7 +49,7 @@ func keyFuncForward(this *Application) error {
 		this.colIndex++
 	} else if this.rowIndex.Next() {
 		this.colIndex = 0
-	} else if p, err := this.buffer.fetch(); err == nil {
+	} else if p, err := this.buffer.Fetch(); err == nil {
 		this.rowIndex = p
 		this.colIndex = 0
 	} else if err != io.EOF {
@@ -130,7 +130,7 @@ func keyFuncInsertByte(this *Application) error {
 
 func keyFuncRemoveByte(this *Application) error {
 	this.clipBoard.Push(this.rowIndex.Byte(this.colIndex))
-	this.buffer.deleteOne(this.rowIndex, this.colIndex)
+	this.buffer.DeleteAt(this.rowIndex, this.colIndex)
 	this.dirty = true
 	return nil
 }

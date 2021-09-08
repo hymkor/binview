@@ -40,7 +40,7 @@ func (b *Buffer) DropLastLine() {
 
 func (b *Buffer) Begin() *Cursor {
 	if b.Len() <= 0 {
-		p, err := b.fetch()
+		p, err := b.Fetch()
 		if err != nil {
 			return nil
 		}
@@ -73,7 +73,7 @@ func (b *Buffer) appendTail() error {
 	return err
 }
 
-func (b *Buffer) fetch() (*Cursor, error) {
+func (b *Buffer) Fetch() (*Cursor, error) {
 	if b.Reader == nil {
 		return nil, io.EOF
 	}
@@ -106,10 +106,10 @@ func (b *Buffer) ReadAll() {
 	}
 }
 
-func (b *Buffer) UnshiftLines(_rowIndex *Cursor, carry byte) {
+func (b *Buffer) unshiftLines(_rowIndex *Cursor, carry byte) {
 	rowIndex := *_rowIndex
 	for {
-		carry = rowIndex.Bytes().Unshift(carry)
+		carry = rowIndex.Bytes().InsertAt(0, carry)
 		if !rowIndex.Next() {
 			break
 		}
@@ -126,14 +126,14 @@ func (b *Buffer) InsertAt(_rowIndex *Cursor, colIndex int, value byte) {
 	rowIndex := *_rowIndex
 	carry := rowIndex.Bytes().InsertAt(colIndex, value)
 	rowIndex.Next()
-	b.UnshiftLines(&rowIndex, carry)
+	b.unshiftLines(&rowIndex, carry)
 }
 
-func (b *Buffer) deleteOne(rowIndex *Cursor, colIndex int) {
+func (b *Buffer) DeleteAt(rowIndex *Cursor, colIndex int) {
 	b.ReadAll()
 	carry := byte(0)
 	for p := b.End(); p.index > rowIndex.index; p.Prev() {
-		carry = p.Bytes().Shift(carry)
+		carry = p.Bytes().RemoveAt(0, carry)
 	}
 	if colIndex < LINE_SIZE {
 		copy(rowIndex.Bytes()[colIndex:], rowIndex.Bytes()[colIndex+1:])

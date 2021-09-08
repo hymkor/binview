@@ -135,7 +135,7 @@ func (app *Application) View() (int, error) {
 
 	if app.buffer.Len() <= 0 {
 		var err error
-		app.window, err = app.buffer.fetch()
+		app.window, err = app.buffer.Fetch()
 		if err != nil {
 			return 0, err
 		}
@@ -152,7 +152,7 @@ func (app *Application) View() (int, error) {
 		}
 		var fetchErr error
 		if !cursor.Next() {
-			cursor, fetchErr = app.buffer.fetch()
+			cursor, fetchErr = app.buffer.Fetch()
 		}
 		var nextBytes []byte
 		var nextAddress int
