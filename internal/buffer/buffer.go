@@ -1,10 +1,12 @@
-package main
+package buffer
 
 import (
 	"bufio"
 	"container/list"
 	"io"
 )
+
+const LINE_SIZE = 16
 
 type Buffer struct {
 	lines *list.List
@@ -46,10 +48,10 @@ func (b *Buffer) Begin() *Cursor {
 		}
 		return p
 	}
-	return &Cursor{buffer: b, index: 0, element: b.lines.Front()}
+	return &Cursor{buffer: b, Index: 0, element: b.lines.Front()}
 }
 func (b *Buffer) End() *Cursor {
-	return &Cursor{buffer: b, index: b.Len() - 1, element: b.lines.Back()}
+	return &Cursor{buffer: b, Index: b.Len() - 1, element: b.lines.Back()}
 }
 
 func (b *Buffer) appendLine() error {
@@ -132,7 +134,7 @@ func (b *Buffer) InsertAt(_rowIndex *Cursor, colIndex int, value byte) {
 func (b *Buffer) DeleteAt(rowIndex *Cursor, colIndex int) {
 	b.ReadAll()
 	carry := byte(0)
-	for p := b.End(); p.index > rowIndex.index; p.Prev() {
+	for p := b.End(); p.Index > rowIndex.Index; p.Prev() {
 		carry = p.Bytes().RemoveAt(0, carry)
 	}
 	if colIndex < LINE_SIZE {
@@ -148,7 +150,7 @@ func (b *Buffer) DeleteAt(rowIndex *Cursor, colIndex int) {
 		if b.Len() <= 0 {
 			return
 		}
-		if rowIndex.index >= b.Len() {
+		if rowIndex.Index >= b.Len() {
 			rowIndex.Prev()
 			colIndex = len(b.LastLine()) - 1
 		}

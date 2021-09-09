@@ -7,6 +7,8 @@ import (
 	"strconv"
 
 	"github.com/mattn/go-tty"
+
+	. "github.com/zetamatta/binview/internal/buffer"
 )
 
 func keyFuncNext(this *Application) error {
@@ -15,7 +17,7 @@ func keyFuncNext(this *Application) error {
 			this.rowIndex = p
 		}
 	}
-	for this.rowIndex.index-this.window.index >= this.dataHeight() {
+	for this.rowIndex.Index-this.window.Index >= this.dataHeight() {
 		this.window.Next()
 	}
 	return nil
@@ -80,7 +82,7 @@ func keyFuncGoEndOfFile(this *Application) error {
 	this.colIndex = this.rowIndex.Len() - 1
 
 	this.window = this.rowIndex.Clone()
-	for this.rowIndex.index-this.window.index < this.dataHeight()-1 && this.window.Prev() {
+	for this.rowIndex.Index-this.window.Index < this.dataHeight()-1 && this.window.Prev() {
 	}
 	this.buffer.Reader = nil
 	return nil

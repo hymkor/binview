@@ -11,6 +11,8 @@ import (
 	"github.com/mattn/go-colorable"
 	"github.com/mattn/go-runewidth"
 	"github.com/mattn/go-tty"
+
+	. "github.com/zetamatta/binview/internal/buffer"
 )
 
 const (
@@ -49,8 +51,6 @@ const (
 	_RIGHTWARDS_ARROW_TO_BAR                 = '\u21E5' // ->|
 	_RIGHTWARDS_TRIANGLE_HEADED_ARROW_TO_BAR = '\u2B72' // ->|
 )
-
-const LINE_SIZE = 16
 
 // See. en.wikipedia.org/wiki/Unicode_control_characters#Control_pictures
 
@@ -355,7 +355,7 @@ func mains(args []string) error {
 			io.WriteString(app.out, runewidth.Truncate(app.message, app.screenWidth-1, ""))
 			io.WriteString(app.out, _ANSI_RESET)
 			app.message = ""
-		} else if 0 <= app.rowIndex.index && app.rowIndex.index < app.buffer.Len() {
+		} else if 0 <= app.rowIndex.Index && app.rowIndex.Index < app.buffer.Len() {
 			if 0 <= app.colIndex && app.colIndex < app.rowIndex.Len() {
 				fmt.Fprintf(app.out, "\x1B[0;33;1m%[3]c(%08[1]X):0x%02[2]X=%-4[2]d",
 					app.rowIndex.Address()+app.colIndex,
@@ -387,7 +387,7 @@ func mains(args []string) error {
 		if app.buffer.Len() <= 0 {
 			return nil
 		}
-		if app.rowIndex.index >= app.buffer.Len() {
+		if app.rowIndex.Index >= app.buffer.Len() {
 			app.rowIndex.Prev()
 			app.colIndex = LINE_SIZE
 		}
@@ -395,9 +395,9 @@ func mains(args []string) error {
 			app.colIndex = app.rowIndex.Len() - 1
 		}
 
-		if app.rowIndex.index < app.window.index {
+		if app.rowIndex.Index < app.window.Index {
 			app.window = app.rowIndex.Clone()
-		} else if app.rowIndex.index >= app.window.index+app.screenHeight-1 {
+		} else if app.rowIndex.Index >= app.window.Index+app.screenHeight-1 {
 			app.window = app.rowIndex.Clone()
 			for i := app.screenHeight - 1 + 1; i > 0; i-- {
 				if !app.window.Prev() {

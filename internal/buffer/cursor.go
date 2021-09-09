@@ -1,4 +1,4 @@
-package main
+package buffer
 
 import (
 	"container/list"
@@ -7,7 +7,7 @@ import (
 
 type Cursor struct {
 	buffer  *Buffer
-	index   int
+	Index   int
 	element *list.Element
 }
 
@@ -15,7 +15,7 @@ func (c *Cursor) Clone() *Cursor {
 	tmp := *c
 	return &tmp
 }
-func (c *Cursor) Address() int      { return c.index * LINE_SIZE }
+func (c *Cursor) Address() int      { return c.Index * LINE_SIZE }
 func (c *Cursor) Bytes() Line       { return c.element.Value.(Line) }
 func (c *Cursor) Byte(pos int) byte { return c.Bytes()[pos] }
 func (c *Cursor) SetByte(pos int, value byte) {
@@ -37,7 +37,7 @@ func (c *Cursor) Next() bool {
 	if next == nil {
 		return false
 	}
-	c.index++
+	c.Index++
 	c.element = next
 	return true
 }
@@ -47,13 +47,13 @@ func (c *Cursor) Prev() bool {
 	if prev == nil {
 		return false
 	}
-	c.index--
+	c.Index--
 	c.element = prev
 	return true
 }
 
 func (cursor *Cursor) GotoEnd() {
-	cursor.index = cursor.buffer.Len() - 1
+	cursor.Index = cursor.buffer.Len() - 1
 	cursor.element = cursor.buffer.lines.Back()
 }
 
