@@ -208,19 +208,19 @@ func keyFuncRepaint(this *Application) error {
 }
 
 func gotoAddress(app *Application, address int64) error {
-	prevousAddress := int64(app.rowIndex.Address()) + int64(app.colIndex)
+	prevousAddress := app.rowIndex.Address() + int64(app.colIndex)
 	app.colIndex = int(address % int64(LINE_SIZE))
 
 	if prevousAddress >= address {
 		// move backward.
-		for int64(app.rowIndex.Address()) > address && app.rowIndex.Prev() {
+		for app.rowIndex.Address() > address && app.rowIndex.Prev() {
 		}
 		app.window.Clone()
 		return nil
 	}
 
 	// move forward.
-	for address >= int64(app.rowIndex.Address()+LINE_SIZE) {
+	for address >= app.rowIndex.Address()+LINE_SIZE {
 		if !app.rowIndex.Next() {
 			app.buffer.ReadAll()
 			if !app.rowIndex.Next() {

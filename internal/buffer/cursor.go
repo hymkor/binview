@@ -15,7 +15,7 @@ func (c *Cursor) Clone() *Cursor {
 	tmp := *c
 	return &tmp
 }
-func (c *Cursor) Address() int      { return c.Index * LINE_SIZE }
+func (c *Cursor) Address() int64    { return int64(c.Index) * LINE_SIZE }
 func (c *Cursor) Bytes() Line       { return c.element.Value.(Line) }
 func (c *Cursor) Byte(pos int) byte { return c.Bytes()[pos] }
 func (c *Cursor) SetByte(pos int, value byte) {

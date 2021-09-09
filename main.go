@@ -54,7 +54,7 @@ const (
 
 // See. en.wikipedia.org/wiki/Unicode_control_characters#Control_pictures
 
-func draw(out io.Writer, address int, cursorPos int, current []byte, next []byte) {
+func draw(out io.Writer, address int64, cursorPos int, current []byte, next []byte) {
 	if cursorPos >= 0 {
 		io.WriteString(out, _ANSI_UNDERLINE_ON)
 		defer io.WriteString(out, _ANSI_UNDERLINE_OFF)
@@ -155,7 +155,7 @@ func (app *Application) View() (int, error) {
 			cursor, fetchErr = app.buffer.Fetch()
 		}
 		var nextBytes []byte
-		var nextAddress int
+		var nextAddress int64
 		if cursor != nil {
 			nextBytes = cursor.Bytes()
 			nextAddress = cursor.Address()
@@ -358,7 +358,7 @@ func mains(args []string) error {
 		} else if 0 <= app.rowIndex.Index && app.rowIndex.Index < app.buffer.Len() {
 			if 0 <= app.colIndex && app.colIndex < app.rowIndex.Len() {
 				fmt.Fprintf(app.out, "\x1B[0;33;1m%[3]c(%08[1]X):0x%02[2]X=%-4[2]d",
-					app.rowIndex.Address()+app.colIndex,
+					app.rowIndex.Address()+int64(app.colIndex),
 					app.rowIndex.Byte(app.colIndex),
 					app.ChangedMark())
 
