@@ -386,12 +386,9 @@ func mains(args []string) error {
 
 		if app.rowIndex.Index < app.window.Index {
 			app.window = app.rowIndex.Clone()
-		} else if app.rowIndex.Index >= app.window.Index+app.screenHeight-1 {
+		} else if app.rowIndex.Index >= app.window.Index+app.dataHeight() {
 			app.window = app.rowIndex.Clone()
-			for i := app.screenHeight - 1 + 1; i > 0; i-- {
-				if !app.window.Prev() {
-					break
-				}
+			for i := app.dataHeight() - 1; i > 0 && app.window.Prev(); i-- {
 			}
 		}
 		if lf > 0 {

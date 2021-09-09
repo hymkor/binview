@@ -12,13 +12,10 @@ import (
 )
 
 func keyFuncNext(this *Application) error {
-	if !this.rowIndex.Next() {
-		if p, err := this.buffer.Fetch(); err == nil {
-			this.rowIndex = p
+	if err := this.rowIndex.NextOrFetch(); err != nil {
+		if err != io.EOF {
+			return err
 		}
-	}
-	for this.rowIndex.Index-this.window.Index >= this.dataHeight() {
-		this.window.Next()
 	}
 	return nil
 }
@@ -27,8 +24,9 @@ func keyFuncBackword(this *Application) error {
 	if this.colIndex > 0 {
 		this.colIndex--
 	} else {
-		this.rowIndex.Prev()
-		this.colIndex = LINE_SIZE - 1
+		if this.rowIndex.Prev() {
+			this.colIndex = LINE_SIZE - 1
+		}
 	}
 	return nil
 }
@@ -49,10 +47,7 @@ func keyFuncQuit(this *Application) error {
 func keyFuncForward(this *Application) error {
 	if this.colIndex < LINE_SIZE-1 {
 		this.colIndex++
-	} else if this.rowIndex.Next() {
-		this.colIndex = 0
-	} else if p, err := this.buffer.Fetch(); err == nil {
-		this.rowIndex = p
+	} else if err := this.rowIndex.NextOrFetch(); err == nil {
 		this.colIndex = 0
 	} else if err != io.EOF {
 		return err
