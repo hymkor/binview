@@ -54,13 +54,13 @@ const (
 
 // See. en.wikipedia.org/wiki/Unicode_control_characters#Control_pictures
 
-func draw(out io.Writer, address int64, cursorPos int, current []byte, next []byte) {
+func makeLineImage(cursor *Cursor, cursorPos int) string {
+	var out strings.Builder
 	if cursorPos >= 0 {
-		io.WriteString(out, _ANSI_UNDERLINE_ON)
-		defer io.WriteString(out, _ANSI_UNDERLINE_OFF)
+		out.WriteString(_ANSI_UNDERLINE_ON)
 	}
-	fmt.Fprintf(out, "%s%08X%s ", CELL2_COLOR_ON, address, CELL2_COLOR_OFF)
-	for i, s := range current {
+	fmt.Fprintf(&out, "%s%08X%s ", CELL2_COLOR_ON, cursor.Address(), CELL2_COLOR_OFF)
+	for i, s := range cursor.Bytes() {
 		var fieldSeperator string
 		if i > 0 {
 			fieldSeperator = " "
@@ -76,19 +76,20 @@ func draw(out io.Writer, address int64, cursorPos int, current []byte, next []by
 			on = CELL2_COLOR_ON
 			off = CELL2_COLOR_OFF
 		}
-		fmt.Fprintf(out, "%s%s%02X%s", fieldSeperator, on, s, off)
+		fmt.Fprintf(&out, "%s%s%02X%s", fieldSeperator, on, s, off)
 	}
-	io.WriteString(out, " ")
-	for i := len(current); i < LINE_SIZE; i++ {
-		io.WriteString(out, "   ")
+	out.WriteString(" ")
+	for i := cursor.Len(); i < LINE_SIZE; i++ {
+		out.WriteString("   ")
 	}
 
 	var joinline [LINE_SIZE * 2]byte
-	copy(joinline[:], current)
-	if next != nil {
-		copy(joinline[len(current):], next)
+	copy(joinline[:], cursor.Bytes())
+
+	if next := *cursor; next.NextOrFetch() == nil {
+		copy(joinline[cursor.Len():], next.Bytes())
 	}
-	for i := 0; i < len(current); {
+	for i := 0; i < cursor.Len(); {
 		c := rune(joinline[i])
 		length := 1
 		if c == '\u000A' {
@@ -118,10 +119,14 @@ func draw(out io.Writer, address int64, cursorPos int, current []byte, next []by
 		} else if length == 4 {
 			padding = "  "
 		}
-		fmt.Fprintf(out, "%s%c%s%s", on, c, off, padding)
+		fmt.Fprintf(&out, "%s%c%s%s", on, c, off, padding)
 		i += length
 	}
-	io.WriteString(out, ERASE_LINE)
+	out.WriteString(ERASE_LINE)
+	if cursorPos >= 0 {
+		out.WriteString(_ANSI_UNDERLINE_OFF)
+	}
+	return out.String()
 }
 
 var cache = map[int]string{}
@@ -141,43 +146,27 @@ func (app *Application) View() (int, error) {
 		}
 	}
 	cursor := app.window.Clone()
-	bytes := cursor.Bytes()
-	address := cursor.Address()
 	for {
 		var cursorPos int
-		if address == app.rowIndex.Address() {
+		if cursor.Index == app.rowIndex.Index {
 			cursorPos = app.colIndex
 		} else {
 			cursorPos = -1
 		}
-		var fetchErr error
-		if !cursor.Next() {
-			cursor, fetchErr = app.buffer.Fetch()
-		}
-		var nextBytes []byte
-		var nextAddress int64
-		if cursor != nil {
-			nextBytes = cursor.Bytes()
-			nextAddress = cursor.Address()
-		}
 
-		var buffer strings.Builder
-		draw(&buffer, address, cursorPos, bytes, nextBytes)
-		line := buffer.String()
+		line := makeLineImage(cursor, cursorPos)
 
 		if f := cache[count]; f != line {
 			io.WriteString(out, line)
 			cache[count] = line
 		}
 
-		if fetchErr == io.EOF {
-			return count, nil
+		if err := cursor.NextOrFetch(); err != nil {
+			if err == io.EOF {
+				return count, nil
+			}
+			return count, err
 		}
-		if fetchErr != nil {
-			return count, fetchErr
-		}
-		bytes = nextBytes
-		address = nextAddress
 		if count+1 >= h {
 			return count, nil
 		}
