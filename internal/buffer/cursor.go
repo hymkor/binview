@@ -96,3 +96,15 @@ func (cursor Cursor) Rune(c int) (rune, int, int) {
 	}
 	return theRune, currentPosInRune, theLen
 }
+
+func (c *Cursor) NextOrFetch() error {
+	if c.Next() {
+		return nil
+	}
+	next, err := c.buffer.Fetch()
+	if err != nil {
+		return err
+	}
+	*c = *next
+	return nil
+}
