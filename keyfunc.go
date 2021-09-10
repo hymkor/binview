@@ -216,11 +216,11 @@ func gotoAddress(app *Application, address int64) error {
 
 	// move forward.
 	for address >= app.rowIndex.Address()+LINE_SIZE {
-		if !app.rowIndex.Next() {
-			app.buffer.ReadAll()
-			if !app.rowIndex.Next() {
-				break
+		if err := app.rowIndex.NextOrFetch(); err != nil {
+			if err != io.EOF {
+				return err
 			}
+			break
 		}
 	}
 	app.window = app.rowIndex.Clone()
