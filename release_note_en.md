@@ -6,6 +6,7 @@ Release notes
 - `w`: show `canceled` instead of `^C` when ESCAPE key is pressed
 - Display CR, LF, TAB with half width arrows
 - Change the internal data structure from `[][16]byte` to `"container/list".List` whose element is `[16]byte`
+- Read data while waiting key typed
 
 0.2.1
 -----
