@@ -28,6 +28,14 @@ func (b *Buffer) Len() int {
 	return b.lines.Len()
 }
 
+func (b *Buffer) AllBytes() int64 {
+	n := b.Len()
+	if n == 0 {
+		return 0
+	}
+	return int64(n-1)*int64(LINE_SIZE) + int64(b.lines.Back().Value.(Line).Len())
+}
+
 func (b *Buffer) LastLine() Line {
 	return b.lines.Back().Value.(Line)
 }

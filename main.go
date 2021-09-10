@@ -318,10 +318,11 @@ func mains(args []string) error {
 			app.message = ""
 		} else if 0 <= app.rowIndex.Index && app.rowIndex.Index < app.buffer.Len() {
 			if 0 <= app.colIndex && app.colIndex < app.rowIndex.Len() {
-				fmt.Fprintf(app.out, "\x1B[0;33;1m%[3]c(%08[1]X):0x%02[2]X=%-4[2]d",
+				fmt.Fprintf(app.out, "\x1B[0;33;1m%c(%X/%X):0x%02X=%-4[4]d",
+					app.ChangedMark(),
 					app.rowIndex.Address()+int64(app.colIndex),
-					app.rowIndex.Byte(app.colIndex),
-					app.ChangedMark())
+					app.buffer.AllBytes(),
+					app.rowIndex.Byte(app.colIndex))
 
 				theRune, thePosInRune, theLenOfRune := app.rowIndex.Rune(app.colIndex)
 				if theRune != utf8.RuneError {
