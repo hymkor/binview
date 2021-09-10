@@ -290,6 +290,9 @@ func mains(args []string) error {
 	}
 	defer app.Close()
 
+	keyWorker := NewNonBlock(func() (string, error) { return getkey(app.tty1) })
+	defer keyWorker.Close()
+
 	var lastWidth, lastHeight int
 	for {
 		app.screenWidth, app.screenHeight, err = app.tty1.Size()
@@ -337,7 +340,7 @@ func mains(args []string) error {
 			}
 		}
 		io.WriteString(app.out, ERASE_SCRN_AFTER)
-		ch, err := getkey(app.tty1)
+		ch, err := keyWorker.GetOr(func() { app.buffer.Fetch() })
 		if err != nil {
 			return err
 		}
