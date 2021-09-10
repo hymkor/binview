@@ -131,8 +131,6 @@ func makeLineImage(cursor *Cursor, cursorPos int) string {
 
 var cache = map[int]string{}
 
-const CELL_WIDTH = 12
-
 func (app *Application) View() (int, error) {
 	h := app.screenHeight - 1
 	out := app.out
