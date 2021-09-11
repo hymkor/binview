@@ -6,8 +6,6 @@ import (
 	"io"
 )
 
-const LINE_SIZE = 16
-
 type Buffer struct {
 	lines *list.List
 	*bufio.Reader
@@ -20,7 +18,7 @@ func NewBuffer(r io.Reader) *Buffer {
 	}
 }
 
-func (b *Buffer) Add(tmp Line) {
+func (b *Buffer) Add(tmp _Line) {
 	b.lines.PushBack(tmp)
 }
 
@@ -33,11 +31,11 @@ func (b *Buffer) AllBytes() int64 {
 	if n == 0 {
 		return 0
 	}
-	return int64(n-1)*int64(LINE_SIZE) + int64(b.lines.Back().Value.(Line).Len())
+	return int64(n-1)*int64(LINE_SIZE) + int64(b.lines.Back().Value.(_Line).Len())
 }
 
-func (b *Buffer) LastLine() Line {
-	return b.lines.Back().Value.(Line)
+func (b *Buffer) LastLine() _Line {
+	return b.lines.Back().Value.(_Line)
 }
 
 func (b *Buffer) SetLastLine(line []byte) {
@@ -63,10 +61,10 @@ func (b *Buffer) End() *Cursor {
 }
 
 func (b *Buffer) appendLine() error {
-	var slice1 [LINE_SIZE]byte
-	n, err := b.Read(slice1[:])
+	newLine1 := newLine()
+	n, err := b.Read(newLine1)
 	if n > 0 {
-		b.Add(slice1[:n])
+		b.Add(newLine1[:n])
 	}
 	return err
 }
@@ -74,18 +72,18 @@ func (b *Buffer) appendLine() error {
 func (b *Buffer) appendTail() error {
 	last := b.LastLine()
 
-	slice1 := make([]byte, LINE_SIZE-len(last))
-	n, err := b.Read(slice1)
+	appendArea := make([]byte, LINE_SIZE-len(last))
+	n, err := b.Read(appendArea)
 	if n > 0 {
-		last = append(last, slice1[:n]...)
+		last = append(last, appendArea[:n]...)
 		b.SetLastLine(last)
 	}
 	return err
 }
 
-func (b *Buffer) Fetch() (*Cursor, error) {
+func (b *Buffer) fetch() error {
 	if b.Reader == nil {
-		return nil, io.EOF
+		return io.EOF
 	}
 	var err error
 	if b.Len() <= 0 || b.End().Len() >= LINE_SIZE {
@@ -96,22 +94,17 @@ func (b *Buffer) Fetch() (*Cursor, error) {
 	if err != nil {
 		b.Reader = nil
 	}
+	return err
+}
+
+func (b *Buffer) Fetch() (*Cursor, error) {
+	err := b.fetch()
 	return b.End(), err
 }
 
 func (b *Buffer) ReadAll() {
-	if b.Reader == nil {
-		return
-	}
-	for {
-		var data [LINE_SIZE]byte
-		n, err := b.Read(data[:])
-		if n > 0 {
-			b.Add(data[:n])
-		}
-		if err != nil {
-			b.Reader = nil
-			break
+	if b.Reader != nil {
+		for b.fetch() == nil {
 		}
 	}
 }

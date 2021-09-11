@@ -16,14 +16,14 @@ func (c *Cursor) Clone() *Cursor {
 	return &tmp
 }
 func (c *Cursor) Address() int64    { return int64(c.Index) * LINE_SIZE }
-func (c *Cursor) Bytes() Line       { return c.element.Value.(Line) }
+func (c *Cursor) Bytes() _Line      { return c.element.Value.(_Line) }
 func (c *Cursor) Byte(pos int) byte { return c.Bytes()[pos] }
 func (c *Cursor) SetByte(pos int, value byte) {
 	c.Bytes()[pos] = value
 }
 func (c *Cursor) Len() int { return len(c.Bytes()) }
 
-func (c *Cursor) Update(value Line) {
+func (c *Cursor) Update(value _Line) {
 	c.element.Value = value
 }
 

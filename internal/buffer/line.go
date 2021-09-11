@@ -1,27 +1,33 @@
 package buffer
 
-type Line []byte
+const LINE_SIZE = 16
 
-func (line Line) LastByte() byte {
+type _Line []byte
+
+func newLine() _Line {
+	return _Line(make([]byte, LINE_SIZE))
+}
+
+func (line _Line) LastByte() byte {
 	return line[len(line)-1]
 }
 
-func (line Line) SetLastByte(value byte) {
+func (line _Line) SetLastByte(value byte) {
 	line[len(line)-1] = value
 }
 
-func (line Line) Len() int {
+func (line _Line) Len() int {
 	return len(line)
 }
 
-func (line Line) RemoveAt(pos int, appendByte byte) byte {
+func (line _Line) RemoveAt(pos int, appendByte byte) byte {
 	deleteByte := line[pos]
 	copy(line[pos:], line[pos+1:])
 	line.SetLastByte(appendByte)
 	return deleteByte
 }
 
-func (line Line) InsertAt(pos int, value byte) byte {
+func (line _Line) InsertAt(pos int, value byte) byte {
 	deleteByte := line.LastByte()
 	copy(line[pos+1:], line[pos:])
 	line[pos] = value
