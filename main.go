@@ -15,6 +15,8 @@ import (
 	. "github.com/zetamatta/binview/internal/buffer"
 )
 
+const LINE_SIZE = 16
+
 const (
 	CURSOR_COLOR_ON  = "\x1B[37;40;1;7m"
 	CURSOR_COLOR_OFF = "\x1B[27;22m"
@@ -54,19 +56,12 @@ const (
 
 // See. en.wikipedia.org/wiki/Unicode_control_characters#Control_pictures
 
-func makeLineImage(cursor *Cursor, cursorPos int) string {
-	var out strings.Builder
-	if cursorPos >= 0 {
-		out.WriteString(_ANSI_UNDERLINE_ON)
-	}
-	fmt.Fprintf(&out, "%s%08X%s ", CELL2_COLOR_ON, cursor.Address(), CELL2_COLOR_OFF)
-	for i, s := range cursor.Bytes() {
-		var fieldSeperator string
-		if i > 0 {
-			fieldSeperator = " "
-		}
+func makeHexPart(pointer *Pointer, cursorAddress int64, out *strings.Builder) bool {
+	fmt.Fprintf(out, "%s%08X%s ", CELL2_COLOR_ON, pointer.Address(), CELL2_COLOR_OFF)
+	var fieldSeperator string
+	for i := 0; i < LINE_SIZE; i++ {
 		var on, off string
-		if i == cursorPos {
+		if pointer.Address() == cursorAddress {
 			on = CURSOR_COLOR_ON
 			off = CURSOR_COLOR_OFF
 		} else if ((i >> 2) & 1) == 0 {
@@ -76,96 +71,140 @@ func makeLineImage(cursor *Cursor, cursorPos int) string {
 			on = CELL2_COLOR_ON
 			off = CELL2_COLOR_OFF
 		}
-		fmt.Fprintf(&out, "%s%s%02X%s", fieldSeperator, on, s, off)
+		fmt.Fprintf(out, "%s%s%02X%s", fieldSeperator, on, pointer.Value(), off)
+		if err := pointer.Next(); err != nil {
+			for ; i < LINE_SIZE-1; i++ {
+				out.WriteString("   ")
+			}
+			return false
+		}
+		fieldSeperator = " "
 	}
-	out.WriteString(" ")
-	for i := cursor.Len(); i < LINE_SIZE; i++ {
-		out.WriteString("   ")
-	}
+	return true
+}
 
-	var joinline [LINE_SIZE * 2]byte
-	copy(joinline[:], cursor.Bytes())
-
-	if next := *cursor; next.NextOrFetch() == nil {
-		copy(joinline[cursor.Len():], next.Bytes())
+func runeCount(b byte) int {
+	if 0xF0 <= b && b <= 0xF4 {
+		return 4
+	} else if 0xE0 <= b && b <= 0xEF {
+		return 3
+	} else if 0xC2 <= b && b <= 0xDF {
+		return 2
+	} else {
+		return 1
 	}
-	for i := 0; i < cursor.Len(); {
-		c := rune(joinline[i])
+}
+
+func makeAsciiPart(pointer *Pointer, cursorAddress int64, out *strings.Builder) bool {
+	for i := 0; i < LINE_SIZE; {
+		var c rune
+		startAddress := pointer.Address()
+		b := pointer.Value()
 		length := 1
-		if c == '\u000A' {
+		if b == '\u000A' {
 			c = _HALFWIDTH_DOWNWARDS_ARROW
-		} else if c == '\u000D' {
+		} else if b == '\u000D' {
 			c = _HALFWIDTH_LEFTWARDS_ARROW
-		} else if c == '\t' {
+		} else if b == '\t' {
 			c = _RIGHTWARDS_ARROW_TO_BAR
-		} else if c < ' ' || c == '\u007F' {
+		} else if b < ' ' || b == '\u007F' {
 			c = '.'
-		} else if c >= utf8.RuneSelf {
-			c, length = utf8.DecodeRune(joinline[i:])
+		} else if b >= utf8.RuneSelf {
+			var runeBuffer [utf8.UTFMax]byte
+			length = runeCount(b)
+			runeBuffer[0] = b
+			readCount := 1
+			for j := 1; j < length && pointer.Next() == nil; j++ {
+				runeBuffer[j] = pointer.Value()
+				readCount++
+			}
+			c, length = utf8.DecodeRune(runeBuffer[:readCount])
 			if c == utf8.RuneError {
 				c = '.'
 			}
-		}
-		var on, off, padding string
-		if i <= cursorPos && cursorPos < i+length {
-			on = CURSOR_COLOR_ON
-			off = CURSOR_COLOR_OFF
 		} else {
-			on = CELL1_COLOR_ON
-			off = CELL1_COLOR_OFF
+			c = rune(b)
+		}
+		if startAddress <= cursorAddress && cursorAddress <= pointer.Address() {
+			out.WriteString(CURSOR_COLOR_ON)
+			out.WriteRune(c)
+			out.WriteString(CURSOR_COLOR_OFF)
+		} else {
+			out.WriteString(CELL1_COLOR_ON)
+			out.WriteRune(c)
+			out.WriteString(CELL1_COLOR_OFF)
 		}
 		if length == 3 {
-			padding = " "
+			out.WriteByte(' ')
 		} else if length == 4 {
-			padding = "  "
+			out.WriteString("  ")
 		}
-		fmt.Fprintf(&out, "%s%c%s%s", on, c, off, padding)
 		i += length
+		if pointer.Next() != nil {
+			return false
+		}
 	}
+	return true
+}
+
+func makeLineImage(pointer *Pointer, cursorAddress int64) (string, bool) {
+	var out strings.Builder
+	off := ""
+	if p := pointer.Address(); p <= cursorAddress && cursorAddress < p+LINE_SIZE {
+		out.WriteString(_ANSI_UNDERLINE_ON)
+		off = _ANSI_UNDERLINE_OFF
+	}
+
+	asciiPointer := *pointer
+	hasNextLine := makeHexPart(pointer, cursorAddress, &out)
+	out.WriteByte(' ')
+	makeAsciiPart(&asciiPointer, cursorAddress, &out)
+
 	out.WriteString(ERASE_LINE)
-	if cursorPos >= 0 {
-		out.WriteString(_ANSI_UNDERLINE_OFF)
-	}
-	return out.String()
+	out.WriteString(off)
+	return out.String(), hasNextLine
 }
 
 var cache = map[int]string{}
+
+func (app *Application) windowPointer() (*Pointer, error) {
+	return app.window, nil
+}
+
+func (app *Application) cursorPointer() (*Pointer, error) {
+	return app.cursor, nil
+}
+
+func (app *Application) cursorAddress() int64 {
+	return app.cursor.Address()
+}
+
+func (app *Application) cursorByte() byte {
+	return app.cursor.Value()
+}
+
+func (app *Application) setCursorByte(value byte) {
+	app.cursor.SetValue(value)
+}
 
 func (app *Application) View() (int, error) {
 	h := app.screenHeight - 1
 	out := app.out
 	count := 0
 
-	if app.buffer.Len() <= 0 {
-		var err error
-		app.window, err = app.buffer.Fetch()
-		if err != nil {
-			return 0, err
-		}
+	cursor, err := app.windowPointer()
+	if err != nil {
+		return 0, err
 	}
-	cursor := app.window.Clone()
+	cursor = cursor.Clone()
+	cursorAddress := app.cursorAddress()
 	for {
-		var cursorPos int
-		if cursor.Index == app.rowIndex.Index {
-			cursorPos = app.colIndex
-		} else {
-			cursorPos = -1
-		}
-
-		line := makeLineImage(cursor, cursorPos)
-
+		line, cont := makeLineImage(cursor, cursorAddress)
 		if f := cache[count]; f != line {
 			io.WriteString(out, line)
 			cache[count] = line
 		}
-
-		if err := cursor.NextOrFetch(); err != nil {
-			if err == io.EOF {
-				return count, nil
-			}
-			return count, err
-		}
-		if count+1 >= h {
+		if !cont || count+1 >= h {
 			return count, nil
 		}
 		count++
@@ -205,9 +244,8 @@ type Application struct {
 	out          io.Writer
 	screenWidth  int
 	screenHeight int
-	colIndex     int
-	rowIndex     *Cursor
-	window       *Cursor
+	cursor       *Pointer
+	window       *Pointer
 	buffer       *Buffer
 	clipBoard    *Clip
 	dirty        bool
@@ -243,8 +281,8 @@ func NewApplication(in io.Reader, out io.Writer, defaultName string) (*Applicati
 	this.clipBoard = NewClip()
 
 	this.buffer = NewBuffer(this.in)
-	this.rowIndex = this.buffer.Begin()
-	this.window = this.buffer.Begin()
+	this.window = NewPointer(this.buffer)
+	this.cursor = NewPointer(this.buffer)
 
 	io.WriteString(this.out, _ANSI_CURSOR_OFF)
 
@@ -261,6 +299,27 @@ func (this *Application) Close() error {
 		this.tty1.Close()
 	}
 	return nil
+}
+
+func readRune(cursor *Pointer) (rune, int, int) {
+	cursor = cursor.Clone()
+	currentPosInRune := 0
+	for !utf8.RuneStart(cursor.Value()) && cursor.Prev() == nil {
+		currentPosInRune++
+	}
+	bytes := make([]byte, 0, utf8.UTFMax)
+	count := runeCount(cursor.Value())
+	for i := 0; i < count; i++ {
+		bytes = append(bytes, cursor.Value())
+		if cursor.Next() != nil {
+			break
+		}
+	}
+	theRune, theLen := utf8.DecodeRune(bytes)
+	if currentPosInRune >= theLen {
+		return utf8.RuneError, 0, 1
+	}
+	return theRune, currentPosInRune, theLen
 }
 
 func mains(args []string) error {
@@ -309,7 +368,7 @@ func mains(args []string) error {
 		if err != nil {
 			return err
 		}
-		if app.buffer.Len() <= 0 {
+		if app.buffer.AllBytes() <= 0 {
 			return nil
 		}
 		io.WriteString(app.out, "\r\n") // \r is for Linux & go-tty
@@ -319,25 +378,23 @@ func mains(args []string) error {
 			io.WriteString(app.out, runewidth.Truncate(app.message, app.screenWidth-1, ""))
 			io.WriteString(app.out, _ANSI_RESET)
 			app.message = ""
-		} else if 0 <= app.rowIndex.Index && app.rowIndex.Index < app.buffer.Len() {
-			if 0 <= app.colIndex && app.colIndex < app.rowIndex.Len() {
-				fmt.Fprintf(app.out, "\x1B[0;33;1m%c(%X/%X):0x%02X=%-4[4]d",
-					app.ChangedMark(),
-					app.rowIndex.Address()+int64(app.colIndex),
-					app.buffer.AllBytes(),
-					app.rowIndex.Byte(app.colIndex))
+		} else {
+			fmt.Fprintf(app.out, "\x1B[0;33;1m%c(%X/%X):0x%02X=%-4[4]d",
+				app.ChangedMark(),
+				app.cursor.Address(),
+				app.buffer.AllBytes(),
+				app.cursor.Value())
 
-				theRune, thePosInRune, theLenOfRune := app.rowIndex.Rune(app.colIndex)
-				if theRune != utf8.RuneError {
-					fmt.Fprintf(app.out, "(%d/%d:U+%X)",
-						thePosInRune+1,
-						theLenOfRune,
-						theRune)
-				} else {
-					io.WriteString(app.out, "(not UTF8)")
-				}
-				io.WriteString(app.out, "\x1B[0m")
+			theRune, thePosInRune, theLenOfRune := readRune(app.cursor)
+			if theRune != utf8.RuneError {
+				fmt.Fprintf(app.out, "(%d/%d:U+%X)",
+					thePosInRune+1,
+					theLenOfRune,
+					theRune)
+			} else {
+				io.WriteString(app.out, "(not UTF8)")
 			}
+			io.WriteString(app.out, "\x1B[0m")
 		}
 		io.WriteString(app.out, ERASE_SCRN_AFTER)
 		ch, err := keyWorker.GetOr(func() { app.buffer.Fetch() })
@@ -349,22 +406,22 @@ func mains(args []string) error {
 				return err
 			}
 		}
-		if app.buffer.Len() <= 0 {
+		if app.buffer.AllBytes() <= 0 {
 			return nil
 		}
-		if app.rowIndex.Index >= app.buffer.Len() {
-			app.rowIndex.Prev()
-			app.colIndex = LINE_SIZE
-		}
-		if app.colIndex >= app.rowIndex.Len() {
-			app.colIndex = app.rowIndex.Len() - 1
-		}
 
-		if app.rowIndex.Index < app.window.Index {
-			app.window = app.rowIndex.Clone()
-		} else if app.rowIndex.Index >= app.window.Index+app.dataHeight() {
-			app.window = app.rowIndex.Clone()
-			for i := app.dataHeight() - 1; i > 0 && app.window.Prev(); i-- {
+		if app.cursor.Address() < app.window.Address() {
+			app.window = app.cursor.Clone()
+			if n := app.window.Address() % LINE_SIZE; n > 0 {
+				app.window.Rewind(n)
+			}
+		} else if app.cursor.Address() >= app.window.Address()+LINE_SIZE*int64(app.dataHeight()) {
+			app.window = app.cursor.Clone()
+			if n := app.window.Address() % LINE_SIZE; n > 0 {
+				app.window.Rewind(n)
+			}
+			for i := app.dataHeight() - 1; i > 0; i-- {
+				app.window.Rewind(LINE_SIZE)
 			}
 		}
 		if lf > 0 {

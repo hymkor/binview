@@ -12,7 +12,7 @@ import (
 )
 
 func keyFuncNext(this *Application) error {
-	if err := this.rowIndex.NextOrFetch(); err != nil {
+	if err := this.cursor.Skip(LINE_SIZE); err != nil {
 		if err != io.EOF {
 			return err
 		}
@@ -21,18 +21,12 @@ func keyFuncNext(this *Application) error {
 }
 
 func keyFuncBackword(this *Application) error {
-	if this.colIndex > 0 {
-		this.colIndex--
-	} else {
-		if this.rowIndex.Prev() {
-			this.colIndex = LINE_SIZE - 1
-		}
-	}
+	this.cursor.Prev()
 	return nil
 }
 
 func keyFuncPrevious(this *Application) error {
-	this.rowIndex.Prev()
+	this.cursor.Rewind(LINE_SIZE)
 	return nil
 }
 
@@ -45,41 +39,34 @@ func keyFuncQuit(this *Application) error {
 }
 
 func keyFuncForward(this *Application) error {
-	if this.colIndex < LINE_SIZE-1 {
-		this.colIndex++
-	} else if err := this.rowIndex.NextOrFetch(); err == nil {
-		this.colIndex = 0
-	} else if err != io.EOF {
-		return err
-	}
+	this.cursor.Next()
 	return nil
 }
 
 func keyFuncGoBeginOfLine(this *Application) error {
-	this.colIndex = 0
+	n := this.cursor.Address() % LINE_SIZE
+	if n > 0 {
+		this.cursor.Rewind(n)
+	}
 	return nil
 }
 
 func keyFuncGoEndofLine(this *Application) error {
-	this.colIndex = this.rowIndex.Len() - 1
+	n := LINE_SIZE - this.cursor.Address()%LINE_SIZE
+	if n > 0 {
+		this.cursor.Skip(n)
+	}
 	return nil
 }
 
 func keyFuncGoBeginOfFile(this *Application) error {
-	this.rowIndex = this.buffer.Begin()
-	this.colIndex = 0
+	this.cursor = NewPointer(this.buffer)
+	this.window = NewPointer(this.buffer)
 	return nil
 }
 
 func keyFuncGoEndOfFile(this *Application) error {
-	this.buffer.ReadAll()
-	this.rowIndex.GotoEnd()
-	this.colIndex = this.rowIndex.Len() - 1
-
-	this.window = this.rowIndex.Clone()
-	for this.rowIndex.Index-this.window.Index < this.dataHeight()-1 && this.window.Prev() {
-	}
-	this.buffer.Reader = nil
+	this.cursor.GoEndOfFile()
 	return nil
 }
 
@@ -88,23 +75,13 @@ func keyFuncPasteAfter(this *Application) error {
 		return nil
 	}
 	newByte := this.clipBoard.Pop()
-	return _addbyte(this, newByte)
-}
-
-func _addbyte(this *Application, newByte byte) error {
-	if this.colIndex+1 < this.rowIndex.Len() {
-		this.colIndex++
-	} else {
-		this.colIndex = 0
-		this.rowIndex.Next()
-	}
-	this.buffer.InsertAt(this.rowIndex, this.colIndex, newByte)
-	this.dirty = true
+	this.cursor.AppendByte(newByte)
 	return nil
 }
 
 func keyFuncAddByte(this *Application) error {
-	return _addbyte(this, 0)
+	this.cursor.AppendByte(0)
+	return nil
 }
 
 func keyFuncPasteBefore(this *Application) error {
@@ -112,24 +89,27 @@ func keyFuncPasteBefore(this *Application) error {
 		return nil
 	}
 	newByte := this.clipBoard.Pop()
-	return _insertByte(this, newByte)
-}
-
-func _insertByte(this *Application, value byte) error {
-	this.buffer.InsertAt(this.rowIndex, this.colIndex, value)
-	this.dirty = true
+	this.cursor.InsertByte(newByte)
 	return nil
 }
 
 func keyFuncInsertByte(this *Application) error {
-	return _insertByte(this, 0)
+	this.cursor.InsertByte(0)
+	return nil
 }
 
 func keyFuncRemoveByte(this *Application) error {
-	this.clipBoard.Push(this.rowIndex.Byte(this.colIndex))
-	this.buffer.DeleteAt(this.rowIndex, this.colIndex)
 	this.dirty = true
-	return nil
+	this.clipBoard.Push(this.cursorByte())
+	switch this.cursor.DeleteByte() {
+	case DeleteAll:
+		return io.EOF
+	case DeleteRefresh:
+		this.window = this.cursor
+		return nil
+	default:
+		return nil
+	}
 }
 
 var overWritten = map[string]struct{}{}
@@ -160,13 +140,9 @@ func writeFile(buffer *Buffer, tty1 *tty.TTY, out io.Writer, fname string) (stri
 	if err != nil {
 		return "", err
 	}
-	p := buffer.Begin()
-	for p != nil {
-		fd.Write(p.Bytes())
-		if !p.Next() {
-			break
-		}
-	}
+	buffer.Each(func(block []byte) {
+		fd.Write(block)
+	})
 	return fname, fd.Close()
 }
 
@@ -183,13 +159,13 @@ func keyFuncWriteFile(this *Application) error {
 
 func keyFuncReplaceByte(this *Application) error {
 	bytes, err := getline(this.out, "replace>",
-		fmt.Sprintf("0x%02X", this.rowIndex.Byte(this.colIndex)))
+		fmt.Sprintf("0x%02X", this.cursorByte()))
 	if err != nil {
 		this.message = err.Error()
 		return nil
 	}
 	if n, err := strconv.ParseUint(bytes, 0, 8); err == nil {
-		this.rowIndex.SetByte(this.colIndex, byte(n))
+		this.setCursorByte(byte(n))
 		this.dirty = true
 	} else {
 		this.message = err.Error()
@@ -203,31 +179,11 @@ func keyFuncRepaint(this *Application) error {
 }
 
 func gotoAddress(app *Application, address int64) error {
-	prevousAddress := app.rowIndex.Address() + int64(app.colIndex)
-	app.colIndex = int(address % int64(LINE_SIZE))
-
-	if prevousAddress >= address {
-		// move backward.
-		for app.rowIndex.Address() > address && app.rowIndex.Prev() {
-		}
-		app.window.Clone()
-		return nil
-	}
-
-	// move forward.
-	for address >= app.rowIndex.Address()+LINE_SIZE {
-		if err := app.rowIndex.NextOrFetch(); err != nil {
-			if err != io.EOF {
-				return err
-			}
-			break
-		}
-	}
-	app.window = app.rowIndex.Clone()
-	for i := app.screenHeight - 2; i > 0; i-- {
-		if !app.window.Prev() {
-			break
-		}
+	prevousAddress := app.cursorAddress()
+	if address > prevousAddress {
+		app.cursor.Skip(address - prevousAddress)
+	} else if address < prevousAddress {
+		app.cursor.Rewind(prevousAddress - address)
 	}
 	return nil
 }
