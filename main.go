@@ -165,44 +165,19 @@ func makeLineImage(pointer *Pointer, cursorAddress int64) (string, bool) {
 	return out.String(), hasNextLine
 }
 
-var cache = map[int]string{}
-
-func (app *Application) windowPointer() (*Pointer, error) {
-	return app.window, nil
-}
-
-func (app *Application) cursorPointer() (*Pointer, error) {
-	return app.cursor, nil
-}
-
-func (app *Application) cursorAddress() int64 {
-	return app.cursor.Address()
-}
-
-func (app *Application) cursorByte() byte {
-	return app.cursor.Value()
-}
-
-func (app *Application) setCursorByte(value byte) {
-	app.cursor.SetValue(value)
-}
-
 func (app *Application) View() (int, error) {
 	h := app.screenHeight - 1
 	out := app.out
 	count := 0
 
-	cursor, err := app.windowPointer()
-	if err != nil {
-		return 0, err
-	}
-	cursor = cursor.Clone()
-	cursorAddress := app.cursorAddress()
+	cursor := app.window.Clone()
+	cursorAddress := app.cursor.Address()
 	for {
 		line, cont := makeLineImage(cursor, cursorAddress)
-		if f := cache[count]; f != line {
+
+		if f := app.cache[count]; f != line {
 			io.WriteString(out, line)
-			cache[count] = line
+			app.cache[count] = line
 		}
 		if !cont || count+1 >= h {
 			return count, nil
@@ -397,12 +372,7 @@ func mains(args []string) error {
 			io.WriteString(app.out, "\x1B[0m")
 		}
 		io.WriteString(app.out, ERASE_SCRN_AFTER)
-		var ch string
-		if app.buffer.Reader != nil {
-			ch, err = keyWorker.GetOr(func() bool { return app.buffer.Fetch() == nil })
-		} else {
-			ch, err = keyWorker.Get()
-		}
+		ch, err := keyWorker.GetOr(func() bool { return app.buffer.Fetch() == nil })
 		if err != nil {
 			return err
 		}
@@ -422,12 +392,9 @@ func mains(args []string) error {
 			}
 		} else if app.cursor.Address() >= app.window.Address()+LINE_SIZE*int64(app.dataHeight()) {
 			app.window = app.cursor.Clone()
-			if n := app.window.Address() % LINE_SIZE; n > 0 {
-				app.window.Rewind(n)
-			}
-			for i := app.dataHeight() - 1; i > 0; i-- {
-				app.window.Rewind(LINE_SIZE)
-			}
+			app.window.Rewind(
+				app.window.Address()%LINE_SIZE +
+					int64(LINE_SIZE*(app.dataHeight()-1)))
 		}
 		if lf > 0 {
 			fmt.Fprintf(app.out, "\r\x1B[%dA", lf)

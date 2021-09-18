@@ -24,11 +24,6 @@ func NewBuffer(r io.Reader) *Buffer {
 	}
 }
 
-func (b *Buffer) Add(tmp _Block) {
-	b.lines.PushBack(tmp)
-	b.allsize += int64(len(tmp))
-}
-
 func (b *Buffer) AllBytes() int64 {
 	return b.allsize
 }
@@ -41,7 +36,8 @@ func (b *Buffer) Fetch() error {
 	n, err := b.Reader.Read(buffer[:])
 
 	if n > 0 {
-		b.Add(_Block(buffer[:n]))
+		b.lines.PushBack(_Block(buffer[:n]))
+		b.allsize += int64(n)
 	}
 	if err != nil {
 		b.Reader = nil
@@ -57,6 +53,7 @@ func (b *Buffer) ReadAll() {
 }
 
 func (b *Buffer) Each(f func([]byte)) {
+	b.ReadAll()
 	for p := b.lines.Front(); p != nil; p = p.Next() {
 		f([]byte(p.Value.(_Block)))
 	}

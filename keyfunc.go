@@ -75,12 +75,12 @@ func keyFuncPasteAfter(this *Application) error {
 		return nil
 	}
 	newByte := this.clipBoard.Pop()
-	this.cursor.AppendByte(newByte)
+	this.cursor.Append(newByte)
 	return nil
 }
 
 func keyFuncAddByte(this *Application) error {
-	this.cursor.AppendByte(0)
+	this.cursor.Append(0)
 	return nil
 }
 
@@ -89,19 +89,19 @@ func keyFuncPasteBefore(this *Application) error {
 		return nil
 	}
 	newByte := this.clipBoard.Pop()
-	this.cursor.InsertByte(newByte)
+	this.cursor.Insert(newByte)
 	return nil
 }
 
 func keyFuncInsertByte(this *Application) error {
-	this.cursor.InsertByte(0)
+	this.cursor.Insert(0)
 	return nil
 }
 
 func keyFuncRemoveByte(this *Application) error {
 	this.dirty = true
-	this.clipBoard.Push(this.cursorByte())
-	switch this.cursor.DeleteByte() {
+	this.clipBoard.Push(this.cursor.Value())
+	switch this.cursor.Delete() {
 	case DeleteAll:
 		return io.EOF
 	case DeleteRefresh:
@@ -159,13 +159,13 @@ func keyFuncWriteFile(this *Application) error {
 
 func keyFuncReplaceByte(this *Application) error {
 	bytes, err := getline(this.out, "replace>",
-		fmt.Sprintf("0x%02X", this.cursorByte()))
+		fmt.Sprintf("0x%02X", this.cursor.Value()))
 	if err != nil {
 		this.message = err.Error()
 		return nil
 	}
 	if n, err := strconv.ParseUint(bytes, 0, 8); err == nil {
-		this.setCursorByte(byte(n))
+		this.cursor.SetValue(byte(n))
 		this.dirty = true
 	} else {
 		this.message = err.Error()
@@ -179,7 +179,7 @@ func keyFuncRepaint(this *Application) error {
 }
 
 func gotoAddress(app *Application, address int64) error {
-	prevousAddress := app.cursorAddress()
+	prevousAddress := app.cursor.Address()
 	if address > prevousAddress {
 		app.cursor.Skip(address - prevousAddress)
 	} else if address < prevousAddress {
