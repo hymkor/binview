@@ -28,16 +28,25 @@ func NewNonBlock(getter func() (string, error)) *NonBlock {
 	}
 }
 
-func (w *NonBlock) GetOr(work func()) (string, error) {
+func (w *NonBlock) GetOr(work func() bool) (string, error) {
 	w.chReq <- struct{}{}
 	for {
 		select {
 		case res := <-w.chRes:
 			return res.data, res.err
 		default:
-			work()
+			if cont := work(); !cont {
+				res := <-w.chRes
+				return res.data, res.err
+			}
 		}
 	}
+}
+
+func (w *NonBlock) Get() (string, error) {
+	w.chReq <- struct{}{}
+	res := <-w.chRes
+	return res.data, res.err
 }
 
 func (w *NonBlock) Close() {

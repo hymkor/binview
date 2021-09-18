@@ -397,7 +397,12 @@ func mains(args []string) error {
 			io.WriteString(app.out, "\x1B[0m")
 		}
 		io.WriteString(app.out, ERASE_SCRN_AFTER)
-		ch, err := keyWorker.GetOr(func() { app.buffer.Fetch() })
+		var ch string
+		if app.buffer.Reader != nil {
+			ch, err = keyWorker.GetOr(func() bool { return app.buffer.Fetch() == nil })
+		} else {
+			ch, err = keyWorker.Get()
+		}
 		if err != nil {
 			return err
 		}
