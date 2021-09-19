@@ -354,7 +354,8 @@ func mains(args []string) error {
 			io.WriteString(app.out, _ANSI_RESET)
 			app.message = ""
 		} else {
-			fmt.Fprintf(app.out, "\x1B[0;33;1m%c(%X/%X):0x%02X=%-4[4]d",
+			fmt.Fprintf(app.out,
+				"\x1B[0;33;1m%[1]c(%[2]d=0x%[2]X/%[3]d=%[3]X):%4[4]d=0x%02[4]X",
 				app.ChangedMark(),
 				app.cursor.Address(),
 				app.buffer.AllBytes(),
