@@ -114,10 +114,18 @@ func keyFuncRemoveByte(this *Application) error {
 
 var overWritten = map[string]struct{}{}
 
+func getlineOr(out io.Writer, prompt string, defaultString string, f func() bool) (string, error) {
+	worker := NewNonBlock(func() (string, error) {
+		return getline(out, prompt, defaultString)
+	})
+	result, err := worker.GetOr(f)
+	worker.Close()
+	return result, err
+}
+
 func writeFile(buffer *Buffer, tty1 *tty.TTY, out io.Writer, fname string) (string, error) {
 	var err error
-
-	fname, err = getline(out, "write to>", fname)
+	fname, err = getlineOr(out, "write to>", fname, func() bool { return buffer.Fetch() == nil })
 	if err != nil {
 		return "", err
 	}
@@ -158,8 +166,9 @@ func keyFuncWriteFile(this *Application) error {
 }
 
 func keyFuncReplaceByte(this *Application) error {
-	bytes, err := getline(this.out, "replace>",
-		fmt.Sprintf("0x%02X", this.cursor.Value()))
+	bytes, err := getlineOr(this.out, "replace>",
+		fmt.Sprintf("0x%02X", this.cursor.Value()),
+		func() bool { return this.buffer.Fetch() == nil })
 	if err != nil {
 		this.message = err.Error()
 		return nil
@@ -189,7 +198,9 @@ func gotoAddress(app *Application, address int64) error {
 }
 
 func keyFuncGoTo(app *Application) error {
-	addressStr, err := getline(app.out, "Goto Offset>", "0x")
+	addressStr, err := getlineOr(app.out, "Goto Offset>", "0x", func() bool {
+		return app.buffer.Fetch() == nil
+	})
 	if err != nil {
 		app.message = err.Error()
 		return nil
