@@ -15,11 +15,11 @@ github.com/mattn/go-runewidth v0.0.13 h1:lTGmDsbAYt5DmK6OnoV7EuIF1wEIFAcxld6ypU4
 github.com/mattn/go-runewidth v0.0.13/go.mod h1:Jdepj2loyihRzMpdS35Xk/zdY8IAYHsh153qUoGf23w=
 github.com/mattn/go-tty v0.0.4-0.20201120140209-72ed86c4554d h1:JZrMI9SDEblDXV8dcUrM7bEW5wouqPYZiug7En4WIS4=
 github.com/mattn/go-tty v0.0.4-0.20201120140209-72ed86c4554d/go.mod h1:+0QBZrHExAnq8s9KMEZErKk7qTDOyCmOmXxHBLO8M2o=
+github.com/nyaosorg/go-readline-ny v0.5.0 h1:7ooB/7/OkHbK6NrRvqi0yM81DxasGmdDYZNfvyL/6r4=
+github.com/nyaosorg/go-readline-ny v0.5.0/go.mod h1:Erw4lUMc6CHO06+ypXfbi4mHMDAhcEg9ZuD+iLPylBY=
 github.com/rivo/uniseg v0.1.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rivo/uniseg v0.2.0 h1:S1pD9weZBuJdFmowNwbpi7BJ8TNftyUImj/0WQi72jY=
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
-github.com/zetamatta/go-readline-ny v0.4.13 h1:fT0AAUReP/Fn1s3dgtSFT/u3Fb62ixV2nWBqRUzWPUU=
-github.com/zetamatta/go-readline-ny v0.4.13/go.mod h1:6G3jMhq6ydHG7Yis1cmMqzWzth+0nKpqWiXKQtchB/U=
 golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sys v0.0.0-20190222072716-a9d3bda3a223/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20191008105621-543471e840be/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
