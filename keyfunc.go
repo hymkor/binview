@@ -129,7 +129,6 @@ func writeFile(buffer *Buffer, tty1 *tty.TTY, out io.Writer, fname string) (stri
 	if err != nil {
 		return "", err
 	}
-	buffer.ReadAll()
 	fd, err := os.OpenFile(fname, os.O_EXCL|os.O_CREATE, 0666)
 	if os.IsExist(err) {
 		if _, ok := overWritten[fname]; ok {
@@ -148,9 +147,7 @@ func writeFile(buffer *Buffer, tty1 *tty.TTY, out io.Writer, fname string) (stri
 	if err != nil {
 		return "", err
 	}
-	buffer.Each(func(block []byte) {
-		fd.Write(block)
-	})
+	buffer.WriteTo(fd)
 	return fname, fd.Close()
 }
 

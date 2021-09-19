@@ -52,9 +52,15 @@ func (b *Buffer) ReadAll() {
 	}
 }
 
-func (b *Buffer) Each(f func([]byte)) {
+func (b *Buffer) WriteTo(w io.Writer) (int64, error) {
 	b.ReadAll()
+	n := int64(0)
 	for p := b.lines.Front(); p != nil; p = p.Next() {
-		f([]byte(p.Value.(_Block)))
+		m, err := w.Write(p.Value.(_Block))
+		n += int64(m)
+		if err != nil {
+			return n, err
+		}
 	}
+	return n, nil
 }
