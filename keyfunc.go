@@ -6,8 +6,6 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/mattn/go-tty"
-
 	. "github.com/zetamatta/binview/internal/buffer"
 )
 
@@ -123,7 +121,7 @@ func getlineOr(out io.Writer, prompt string, defaultString string, f func() bool
 	return result, err
 }
 
-func writeFile(buffer *Buffer, tty1 *tty.TTY, out io.Writer, fname string) (string, error) {
+func writeFile(buffer *Buffer, tty1 Tty, out io.Writer, fname string) (string, error) {
 	var err error
 	fname, err = getlineOr(out, "write to>", fname, func() bool { return buffer.Fetch() == nil })
 	if err != nil {

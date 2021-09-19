@@ -8,10 +8,14 @@ import (
 	"strings"
 	"unicode/utf16"
 
-	"github.com/mattn/go-tty"
-
 	"github.com/nyaosorg/go-readline-ny"
 )
+
+type Tty interface {
+	Raw() (func() error, error)
+	ReadRune() (rune, error)
+	Buffered() bool
+}
 
 func getline(out io.Writer, prompt string, defaultStr string) (string, error) {
 	editor := readline.Editor{
@@ -33,7 +37,7 @@ func getline(out io.Writer, prompt string, defaultStr string) (string, error) {
 	return text, err
 }
 
-func getkey(tty1 *tty.TTY) (string, error) {
+func getkey(tty1 Tty) (string, error) {
 	clean, err := tty1.Raw()
 	if err != nil {
 		return "", err
@@ -68,7 +72,7 @@ func getkey(tty1 *tty.TTY) (string, error) {
 	}
 }
 
-func yesNo(tty1 *tty.TTY, out io.Writer, message string) bool {
+func yesNo(tty1 Tty, out io.Writer, message string) bool {
 	fmt.Fprintf(out, "%s\r%s%s", _ANSI_YELLOW, message, ERASE_LINE)
 	ch, err := getkey(tty1)
 	return err == nil && ch == "y"
