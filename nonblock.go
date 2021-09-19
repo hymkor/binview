@@ -43,12 +43,6 @@ func (w *NonBlock) GetOr(work func() bool) (string, error) {
 	}
 }
 
-func (w *NonBlock) Get() (string, error) {
-	w.chReq <- struct{}{}
-	res := <-w.chRes
-	return res.data, res.err
-}
-
 func (w *NonBlock) Close() {
 	close(w.chReq)
 }
