@@ -6,7 +6,7 @@ ifeq ($(OS),Windows_NT)
     SET=set
     TYPE=type
     DEL=del
-    D=\\
+    D=$\\
 else
     SET=export
     TYPE=cat
