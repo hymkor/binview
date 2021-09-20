@@ -149,6 +149,7 @@ func (p *Pointer) Delete() int {
 	p.element.Value = _Block(block)
 	if p.offset >= len(block) {
 		p.offset = len(block) - 1
+		p.address--
 	}
 	return DeleteSuccess
 }
