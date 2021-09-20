@@ -49,8 +49,8 @@ func keyFuncGoBeginOfLine(this *Application) error {
 	return nil
 }
 
-func keyFuncGoEndofLine(this *Application) error {
-	n := LINE_SIZE - this.cursor.Address()%LINE_SIZE
+func keyFuncGoEndOfLine(this *Application) error {
+	n := LINE_SIZE - this.cursor.Address()%LINE_SIZE - 1
 	if n > 0 {
 		this.cursor.Skip(n)
 	}
@@ -229,8 +229,8 @@ var jumpTable = map[string]func(this *Application) error{
 	"0":         keyFuncGoBeginOfLine,
 	"^":         keyFuncGoBeginOfLine,
 	_KEY_CTRL_A: keyFuncGoBeginOfLine,
-	"$":         keyFuncGoEndofLine,
-	_KEY_CTRL_E: keyFuncGoEndofLine,
+	"$":         keyFuncGoEndOfLine,
+	_KEY_CTRL_E: keyFuncGoEndOfLine,
 	"<":         keyFuncGoBeginOfFile,
 	">":         keyFuncGoEndOfFile,
 	"G":         keyFuncGoEndOfFile,
