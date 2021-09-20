@@ -96,3 +96,11 @@ func TestCutAndPasteBefore(t *testing.T) {
 		keyFuncGoBeginOfFile,
 		keyFuncPasteBefore)
 }
+
+func TestKeyFuncPrevious(t *testing.T) {
+	try(t, "0123456789ABCDEF"+"GHIJ", "01J23456789ABCDEFGHI",
+		keyFuncGoEndOfFile,
+		keyFuncRemoveByte,
+		keyFuncPrevious,
+		keyFuncPasteBefore)
+}
