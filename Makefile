@@ -6,16 +6,21 @@ ifeq ($(OS),Windows_NT)
     SET=set
     TYPE=type
     DEL=del
+    D=\\
 else
     SET=export
     TYPE=cat
     DEL=rm
+    D=/
 endif
 
 all:
-	cd internal\buffer && go fmt
+	cd internal$(D)buffer && go fmt
 	go fmt
 	$(SET) "CGO_ENABLED=0" && go build $(GOOPT)
+
+test:
+	go test -v
 
 package:
 	$(foreach GOARCH,386 amd64,\
