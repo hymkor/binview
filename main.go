@@ -114,6 +114,7 @@ func makeAsciiPart(pointer *Pointer, cursorAddress int64, out *strings.Builder) 
 			length = runeCount(b)
 			runeBuffer[0] = b
 			readCount := 1
+			savePointer := pointer.Clone()
 			for j := 1; j < length && pointer.Next() == nil; j++ {
 				runeBuffer[j] = pointer.Value()
 				readCount++
@@ -121,6 +122,8 @@ func makeAsciiPart(pointer *Pointer, cursorAddress int64, out *strings.Builder) 
 			c, length = utf8.DecodeRune(runeBuffer[:readCount])
 			if c == utf8.RuneError {
 				c = '.'
+				length = 1
+				pointer = savePointer
 			}
 		} else {
 			c = rune(b)
