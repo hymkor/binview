@@ -104,3 +104,15 @@ func TestKeyFuncPrevious(t *testing.T) {
 		keyFuncPrevious,
 		keyFuncPasteBefore)
 }
+
+func TestKeyFuncBeginOfLine(t *testing.T) {
+	try(t, "0123456789ABCDEF"+"GHIJ", "0123456789ABCDEF"+"HIJ",
+		keyFuncGoEndOfFile,
+		keyFuncGoBeginOfLine,
+		keyFuncRemoveByte)
+}
+
+func TestKeyFuncAddByte(t *testing.T) {
+	try(t, "0123456789ABCDEF", "0\000123456789ABCDEF",
+		keyFuncAddByte)
+}

@@ -45,6 +45,7 @@ func keyFuncForward(this *Application) error {
 	return nil
 }
 
+// keyFuncGoBeginOfLine move the cursor the the top of the 16bytes-block.
 func keyFuncGoBeginOfLine(this *Application) error {
 	n := this.cursor.Address() % LINE_SIZE
 	if n > 0 {
@@ -74,6 +75,7 @@ func keyFuncGoEndOfFile(this *Application) error {
 	return nil
 }
 
+// keyFuncPasteAfter inserts the top byte of clipboard after the cursor.
 func keyFuncPasteAfter(this *Application) error {
 	if this.clipBoard.Len() <= 0 {
 		return nil
@@ -83,6 +85,7 @@ func keyFuncPasteAfter(this *Application) error {
 	return nil
 }
 
+// keyFuncAddByte inserts the zero after the cursor.
 func keyFuncAddByte(this *Application) error {
 	this.cursor.Append(0)
 	return nil
