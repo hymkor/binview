@@ -8,7 +8,7 @@ import (
 
 type _Block = []byte
 
-const _ALLOC_SIZE = 4096
+var ALLOC_SIZE = 4096
 
 type Buffer struct {
 	lines *list.List
@@ -32,8 +32,8 @@ func (b *Buffer) Fetch() error {
 	if b.Reader == nil {
 		return io.EOF
 	}
-	var buffer [_ALLOC_SIZE]byte
-	n, err := b.Reader.Read(buffer[:])
+	buffer := make([]byte, ALLOC_SIZE)
+	n, err := b.Reader.Read(buffer)
 
 	if n > 0 {
 		b.lines.PushBack(_Block(buffer[:n]))
