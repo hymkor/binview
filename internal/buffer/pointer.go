@@ -102,6 +102,7 @@ func (p *Pointer) GoEndOfFile() {
 }
 
 func (p *Pointer) Insert(value byte) {
+	p.buffer.allsize++
 	block := p.element.Value.(_Block)
 	block = append(block, 0)
 	copy(block[p.offset+1:], block[p.offset:])
@@ -110,6 +111,7 @@ func (p *Pointer) Insert(value byte) {
 }
 
 func (p *Pointer) Append(value byte) {
+	p.buffer.allsize++
 	block := p.element.Value.(_Block)
 	if len(block) == p.offset+1 {
 		block = append(block, value)
@@ -128,6 +130,7 @@ const (
 )
 
 func (p *Pointer) Delete() int {
+	p.buffer.allsize--
 	block := p.element.Value.(_Block)
 	if len(block) <= 1 {
 		defer p.buffer.lines.Remove(p.element)
