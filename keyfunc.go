@@ -115,10 +115,10 @@ func keyFuncInsertByte(this *Application) error {
 func keyFuncRemoveByte(this *Application) error {
 	this.dirty = true
 	this.clipBoard.Push(this.cursor.Value())
-	switch this.cursor.Delete() {
-	case DeleteAll:
+	switch this.cursor.Remove() {
+	case RemoveAll:
 		return io.EOF
-	case DeleteRefresh:
+	case RemoveRefresh:
 		this.window = this.cursor
 		return nil
 	default:

@@ -124,12 +124,12 @@ func (p *Pointer) Append(value byte) {
 }
 
 const (
-	DeleteSuccess = iota
-	DeleteAll
-	DeleteRefresh
+	RemoveSuccess = iota
+	RemoveAll
+	RemoveRefresh
 )
 
-func (p *Pointer) Delete() int {
+func (p *Pointer) Remove() int {
 	p.buffer.allsize--
 	block := p.element.Value.(_Block)
 	if len(block) <= 1 {
@@ -137,14 +137,14 @@ func (p *Pointer) Delete() int {
 		if next := p.element.Next(); next != nil {
 			p.element = next
 			p.offset = 0
-			return DeleteSuccess
+			return RemoveSuccess
 		} else if prev := p.element.Prev(); prev != nil {
 			p.element = prev
 			p.address--
 			p.offset = len(p.element.Value.(_Block)) - 1
-			return DeleteRefresh
+			return RemoveRefresh
 		} else {
-			return DeleteAll
+			return RemoveAll
 		}
 	}
 	copy(block[p.offset:], block[p.offset+1:])
@@ -154,5 +154,5 @@ func (p *Pointer) Delete() int {
 		p.offset = len(block) - 1
 		p.address--
 	}
-	return DeleteSuccess
+	return RemoveSuccess
 }
