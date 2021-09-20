@@ -9,6 +9,7 @@ import (
 	. "github.com/zetamatta/binview/internal/buffer"
 )
 
+// keyFuncNext moves the cursor to the the next 16-bytes block.
 func keyFuncNext(this *Application) error {
 	if err := this.cursor.Skip(LINE_SIZE); err != nil {
 		if err != io.EOF {
@@ -18,11 +19,13 @@ func keyFuncNext(this *Application) error {
 	return nil
 }
 
+// keyFuncBackword move the cursor to the previous byte.
 func keyFuncBackword(this *Application) error {
 	this.cursor.Prev()
 	return nil
 }
 
+// keyFuncPrevious moves the cursor the the previous 16-bytes block.
 func keyFuncPrevious(this *Application) error {
 	this.cursor.Rewind(LINE_SIZE)
 	return nil
@@ -36,6 +39,7 @@ func keyFuncQuit(this *Application) error {
 	return nil
 }
 
+// keyFuncForward moves the cursor to the next one byte.
 func keyFuncForward(this *Application) error {
 	this.cursor.Next()
 	return nil
@@ -49,6 +53,7 @@ func keyFuncGoBeginOfLine(this *Application) error {
 	return nil
 }
 
+// keyFuncGoEndOfLine move the cursor to the end of the current 16 byte block.
 func keyFuncGoEndOfLine(this *Application) error {
 	n := LINE_SIZE - this.cursor.Address()%LINE_SIZE - 1
 	if n > 0 {
@@ -63,6 +68,7 @@ func keyFuncGoBeginOfFile(this *Application) error {
 	return nil
 }
 
+// keyFuncGoEndOfFile moves the cursor to the end of the file.
 func keyFuncGoEndOfFile(this *Application) error {
 	this.cursor.GoEndOfFile()
 	return nil
@@ -91,11 +97,13 @@ func keyFuncPasteBefore(this *Application) error {
 	return nil
 }
 
+// keyFuncInsertByte inserts the zero where cursor exists.
 func keyFuncInsertByte(this *Application) error {
 	this.cursor.Insert(0)
 	return nil
 }
 
+// keyFuncRemoveByte removes the byte where cursor exists.
 func keyFuncRemoveByte(this *Application) error {
 	this.dirty = true
 	this.clipBoard.Push(this.cursor.Value())
