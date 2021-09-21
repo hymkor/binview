@@ -116,3 +116,11 @@ func TestKeyFuncAddByte(t *testing.T) {
 	try(t, "0123456789ABCDEF", "0\000123456789ABCDEF",
 		keyFuncAddByte)
 }
+
+func TestEmptyData(t *testing.T) {
+	_, err := NewApplication(strings.NewReader(""), io.Discard, "dummy")
+	if err == nil {
+		t.Fatal("with empty data,NewApplication must return error, but it did not")
+		return
+	}
+}
