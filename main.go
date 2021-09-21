@@ -245,28 +245,27 @@ func (app *Application) ChangedMark() rune {
 }
 
 func NewApplication(in io.Reader, out io.Writer, defaultName string) (*Application, error) {
-	this := &Application{}
-
-	this.savePath = defaultName
-	this.in = in
-	this.out = out
-
+	this := &Application{
+		savePath:  defaultName,
+		in:        in,
+		out:       out,
+		buffer:    NewBuffer(in),
+		clipBoard: NewClip(),
+	}
+	this.window = NewPointer(this.buffer)
+	if this.window == nil {
+		return nil, io.EOF
+	}
+	this.cursor = NewPointer(this.buffer)
+	if this.cursor == nil {
+		return nil, io.EOF
+	}
 	var err error
 	this.tty1, err = tty.Open()
 	if err != nil {
 		return nil, err
 	}
-	this.clipBoard = NewClip()
-
-	this.buffer = NewBuffer(this.in)
-	this.window = NewPointer(this.buffer)
-	this.cursor = NewPointer(this.buffer)
-
-	io.WriteString(this.out, _ANSI_CURSOR_OFF)
-
-	this.dirty = false
-	this.message = ""
-
+	io.WriteString(out, _ANSI_CURSOR_OFF)
 	return this, nil
 }
 
