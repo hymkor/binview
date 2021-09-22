@@ -54,6 +54,8 @@ const (
 	_RIGHTWARDS_TRIANGLE_HEADED_ARROW_TO_BAR = '\u2B72' // ->|
 )
 
+var version string = "snapshot"
+
 // See. en.wikipedia.org/wiki/Unicode_control_characters#Control_pictures
 
 func makeHexPart(pointer *Pointer, cursorAddress int64, out *strings.Builder) bool {
@@ -306,6 +308,8 @@ func mains(args []string) error {
 		defer disable()
 	}
 	out := colorable.NewColorableStdout()
+
+	fmt.Fprintf(out, "binview %s\n", version)
 
 	in, err := NewArgf(args)
 	if err != nil {
