@@ -1,6 +1,6 @@
 NAME=$(lastword $(subst /, ,$(abspath .)))
-VERSION=$(shell $(TYPE) version.txt)
-GOOPT=-ldflags "-s -w -X main.version=$(shell git.exe describe --tags)"
+VERSION=$(shell git.exe describe --tags)
+GOOPT=-ldflags "-s -w -X main.version=$(VERSION)"
 ifeq ($(OS),Windows_NT)
     SHELL=CMD.EXE
     SET=set
