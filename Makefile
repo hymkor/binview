@@ -23,14 +23,18 @@ test:
 	go test -v
 
 package:
+	$(SET) "GOOS=windows" && \
+	$(SET) "CGO_ENABLED=0" && \
 	$(foreach GOARCH,386 amd64,\
 	    $(SET) "GOARCH=$(GOARCH)" && \
-	    $(SET) "CGO_ENABLED=0" && \
 	    go build -o $(NAME).exe $(GOOPT) && \
 	    zip -9 $(NAME)-$(VERSION)-windows-$(GOARCH).zip $(NAME).exe && ) :
-	$(SET) "GOARCH=amd64" && $(SET) "GOOS=linux" && \
+	$(SET) "GOOS=linux" && \
+	$(SET) "CGO_ENABLED=0" && \
+	$(foreach GOARCH,386 amd64,\
+	    $(SET) "GOARCH=$(GOARCH)" && \
 	    go build -o $(NAME) $(GOOPT) && \
-	    tar zcvf $(NAME)-$(VERSION)-linux-amd64.tar.gz $(NAME)
+	    tar zcvf $(NAME)-$(VERSION)-linux-$(GOARCH).tar.gz $(NAME) && ) :
 
 clean:
 	$(DEL) *.zip *.tar.gz $(NAME) $(NAME).exe
