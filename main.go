@@ -271,6 +271,7 @@ func NewApplication(in io.Reader, out io.Writer, defaultName string) (*Applicati
 
 func (this *Application) Close() error {
 	io.WriteString(this.out, _ANSI_CURSOR_ON)
+	io.WriteString(this.out, _ANSI_RESET)
 
 	if this.tty1 != nil {
 		this.tty1.Close()
