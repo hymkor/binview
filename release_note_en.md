@@ -7,6 +7,7 @@ Release notes
 - Display CR, LF, TAB with half width arrows
 - Read data while waiting key typed
 - Improve the internal data structure and be able to read more huge data
+- Fix: the text color remained yellow even after the program ended
 
 0.2.1
 -----
