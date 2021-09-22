@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"unicode/utf8"
 
@@ -309,7 +310,8 @@ func mains(args []string) error {
 	}
 	out := colorable.NewColorableStdout()
 
-	fmt.Fprintf(out, "binview %s\n", version)
+	fmt.Fprintf(out, "binview %s-%s-%s by %s\n",
+		version, runtime.GOOS, runtime.GOARCH, runtime.Version())
 
 	in, err := NewArgf(args)
 	if err != nil {
