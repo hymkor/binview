@@ -1,4 +1,4 @@
-package main
+package argf
 
 import (
 	"bufio"
@@ -27,7 +27,7 @@ func TestArgf(t *testing.T) {
 		}
 	}()
 
-	reader, err := NewArgf(args)
+	reader, err := New(args)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

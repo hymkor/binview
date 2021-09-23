@@ -1,4 +1,4 @@
-package main
+package argf
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ type Argf struct {
 	reader io.ReadCloser
 }
 
-func NewArgf(args []string) (*Argf, error) {
+func New(args []string) (*Argf, error) {
 	if args == nil || len(args) < 1 {
 		return &Argf{args: nil, reader: ioutil.NopCloser(os.Stdin)}, nil
 	}

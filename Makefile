@@ -16,6 +16,7 @@ endif
 
 all:
 	cd internal$(D)large && go fmt
+	cd internal$(D)argf  && go fmt
 	go fmt
 	$(SET) "CGO_ENABLED=0" && go build $(GOOPT)
 

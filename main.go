@@ -13,6 +13,7 @@ import (
 	"github.com/mattn/go-runewidth"
 	"github.com/mattn/go-tty"
 
+	"github.com/zetamatta/binview/internal/argf"
 	"github.com/zetamatta/binview/internal/large"
 )
 
@@ -313,7 +314,7 @@ func mains(args []string) error {
 	fmt.Fprintf(out, "binview %s-%s-%s by %s\n",
 		version, runtime.GOOS, runtime.GOARCH, runtime.Version())
 
-	in, err := NewArgf(args)
+	in, err := argf.New(args)
 	if err != nil {
 		return err
 	}
