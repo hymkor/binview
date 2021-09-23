@@ -13,6 +13,8 @@ import (
 	"github.com/mattn/go-runewidth"
 	"github.com/mattn/go-tty"
 
+	"github.com/nyaosorg/go-readline-ny"
+
 	"github.com/zetamatta/binview/internal/argf"
 	"github.com/zetamatta/binview/internal/large"
 	"github.com/zetamatta/binview/internal/nonblock"
@@ -335,7 +337,7 @@ func mains(args []string) error {
 	}
 	defer app.Close()
 
-	keyWorker := nonblock.New(func() (string, error) { return getkey(app.tty1) })
+	keyWorker := nonblock.New(func() (string, error) { return readline.GetKey(app.tty1) })
 	defer keyWorker.Close()
 
 	var lastWidth, lastHeight int
