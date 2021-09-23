@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/zetamatta/binview/internal/large"
+	"github.com/zetamatta/binview/internal/nonblock"
 )
 
 // keyFuncNext moves the cursor to the the next 16-bytes block.
@@ -129,7 +130,7 @@ func keyFuncRemoveByte(this *Application) error {
 var overWritten = map[string]struct{}{}
 
 func getlineOr(out io.Writer, prompt string, defaultString string, f func() bool) (string, error) {
-	worker := NewNonBlock(func() (string, error) {
+	worker := nonblock.New(func() (string, error) {
 		return getline(out, prompt, defaultString)
 	})
 	result, err := worker.GetOr(f)

@@ -1,4 +1,4 @@
-package main
+package nonblock
 
 type _Response struct {
 	data string
@@ -10,7 +10,7 @@ type NonBlock struct {
 	chRes chan _Response
 }
 
-func NewNonBlock(getter func() (string, error)) *NonBlock {
+func New(getter func() (string, error)) *NonBlock {
 	chReq := make(chan struct{})
 	chRes := make(chan _Response)
 

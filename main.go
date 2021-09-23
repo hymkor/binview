@@ -15,6 +15,7 @@ import (
 
 	"github.com/zetamatta/binview/internal/argf"
 	"github.com/zetamatta/binview/internal/large"
+	"github.com/zetamatta/binview/internal/nonblock"
 )
 
 const LINE_SIZE = 16
@@ -334,7 +335,7 @@ func mains(args []string) error {
 	}
 	defer app.Close()
 
-	keyWorker := NewNonBlock(func() (string, error) { return getkey(app.tty1) })
+	keyWorker := nonblock.New(func() (string, error) { return getkey(app.tty1) })
 	defer keyWorker.Close()
 
 	var lastWidth, lastHeight int
