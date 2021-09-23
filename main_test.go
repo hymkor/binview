@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	. "github.com/zetamatta/binview/internal/buffer"
+	. "github.com/zetamatta/binview/internal/large"
 )
 
 func try(

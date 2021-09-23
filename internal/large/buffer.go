@@ -1,4 +1,4 @@
-package buffer
+package large
 
 import (
 	"bufio"
@@ -24,7 +24,7 @@ func NewBuffer(r io.Reader) *Buffer {
 	}
 }
 
-func (b *Buffer) AllBytes() int64 {
+func (b *Buffer) Len() int64 {
 	return b.allsize
 }
 
@@ -46,9 +46,7 @@ func (b *Buffer) Fetch() error {
 }
 
 func (b *Buffer) ReadAll() {
-	if b.Reader != nil {
-		for b.Fetch() == nil {
-		}
+	for b.Fetch() == nil {
 	}
 }
 

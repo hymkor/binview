@@ -6,7 +6,7 @@ import (
 	"os"
 	"strconv"
 
-	. "github.com/zetamatta/binview/internal/buffer"
+	"github.com/zetamatta/binview/internal/large"
 )
 
 // keyFuncNext moves the cursor to the the next 16-bytes block.
@@ -64,8 +64,8 @@ func keyFuncGoEndOfLine(this *Application) error {
 }
 
 func keyFuncGoBeginOfFile(this *Application) error {
-	this.cursor = NewPointer(this.buffer)
-	this.window = NewPointer(this.buffer)
+	this.cursor = large.NewPointer(this.buffer)
+	this.window = large.NewPointer(this.buffer)
 	return nil
 }
 
@@ -116,9 +116,9 @@ func keyFuncRemoveByte(this *Application) error {
 	this.dirty = true
 	this.clipBoard.Push(this.cursor.Value())
 	switch this.cursor.Remove() {
-	case RemoveAll:
+	case large.RemoveAll:
 		return io.EOF
-	case RemoveRefresh:
+	case large.RemoveRefresh:
 		this.window = this.cursor
 		return nil
 	default:
@@ -137,7 +137,7 @@ func getlineOr(out io.Writer, prompt string, defaultString string, f func() bool
 	return result, err
 }
 
-func writeFile(buffer *Buffer, tty1 Tty, out io.Writer, fname string) (string, error) {
+func writeFile(buffer *large.Buffer, tty1 Tty, out io.Writer, fname string) (string, error) {
 	var err error
 	fname, err = getlineOr(out, "write to>", fname, func() bool { return buffer.Fetch() == nil })
 	if err != nil {

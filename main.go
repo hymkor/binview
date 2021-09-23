@@ -13,7 +13,7 @@ import (
 	"github.com/mattn/go-runewidth"
 	"github.com/mattn/go-tty"
 
-	. "github.com/zetamatta/binview/internal/buffer"
+	"github.com/zetamatta/binview/internal/large"
 )
 
 const LINE_SIZE = 16
@@ -59,7 +59,7 @@ var version string = "snapshot"
 
 // See. en.wikipedia.org/wiki/Unicode_control_characters#Control_pictures
 
-func makeHexPart(pointer *Pointer, cursorAddress int64, out *strings.Builder) bool {
+func makeHexPart(pointer *large.Pointer, cursorAddress int64, out *strings.Builder) bool {
 	fmt.Fprintf(out, "%s%08X%s ", CELL2_COLOR_ON, pointer.Address(), CELL2_COLOR_OFF)
 	var fieldSeperator string
 	for i := 0; i < LINE_SIZE; i++ {
@@ -98,7 +98,7 @@ func runeCount(b byte) int {
 	}
 }
 
-func makeAsciiPart(pointer *Pointer, cursorAddress int64, out *strings.Builder) bool {
+func makeAsciiPart(pointer *large.Pointer, cursorAddress int64, out *strings.Builder) bool {
 	for i := 0; i < LINE_SIZE; {
 		var c rune
 		startAddress := pointer.Address()
@@ -153,7 +153,7 @@ func makeAsciiPart(pointer *Pointer, cursorAddress int64, out *strings.Builder) 
 	return true
 }
 
-func makeLineImage(pointer *Pointer, cursorAddress int64) (string, bool) {
+func makeLineImage(pointer *large.Pointer, cursorAddress int64) (string, bool) {
 	var out strings.Builder
 	off := ""
 	if p := pointer.Address(); p <= cursorAddress && cursorAddress < p+LINE_SIZE {
@@ -225,9 +225,9 @@ type Application struct {
 	out          io.Writer
 	screenWidth  int
 	screenHeight int
-	cursor       *Pointer
-	window       *Pointer
-	buffer       *Buffer
+	cursor       *large.Pointer
+	window       *large.Pointer
+	buffer       *large.Buffer
 	clipBoard    *Clip
 	dirty        bool
 	savePath     string
@@ -252,14 +252,14 @@ func NewApplication(in io.Reader, out io.Writer, defaultName string) (*Applicati
 		savePath:  defaultName,
 		in:        in,
 		out:       out,
-		buffer:    NewBuffer(in),
+		buffer:    large.NewBuffer(in),
 		clipBoard: NewClip(),
 	}
-	this.window = NewPointer(this.buffer)
+	this.window = large.NewPointer(this.buffer)
 	if this.window == nil {
 		return nil, io.EOF
 	}
-	this.cursor = NewPointer(this.buffer)
+	this.cursor = large.NewPointer(this.buffer)
 	if this.cursor == nil {
 		return nil, io.EOF
 	}
@@ -282,7 +282,7 @@ func (this *Application) Close() error {
 	return nil
 }
 
-func readRune(cursor *Pointer) (rune, int, int) {
+func readRune(cursor *large.Pointer) (rune, int, int) {
 	cursor = cursor.Clone()
 	currentPosInRune := 0
 	for !utf8.RuneStart(cursor.Value()) && cursor.Prev() == nil {
@@ -352,7 +352,7 @@ func mains(args []string) error {
 		if err != nil {
 			return err
 		}
-		if app.buffer.AllBytes() <= 0 {
+		if app.buffer.Len() <= 0 {
 			return nil
 		}
 		io.WriteString(app.out, "\r\n") // \r is for Linux & go-tty
@@ -367,7 +367,7 @@ func mains(args []string) error {
 				"\x1B[0;33;1m%[1]c(%[2]d=0x%[2]X/%[3]d=0x%[3]X):%4[4]d=0x%02[4]X",
 				app.ChangedMark(),
 				app.cursor.Address(),
-				app.buffer.AllBytes(),
+				app.buffer.Len(),
 				app.cursor.Value())
 
 			theRune, thePosInRune, theLenOfRune := readRune(app.cursor)
@@ -391,7 +391,7 @@ func mains(args []string) error {
 				return err
 			}
 		}
-		if app.buffer.AllBytes() <= 0 {
+		if app.buffer.Len() <= 0 {
 			return nil
 		}
 

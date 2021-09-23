@@ -15,7 +15,7 @@ else
 endif
 
 all:
-	cd internal$(D)buffer && go fmt
+	cd internal$(D)large && go fmt
 	go fmt
 	$(SET) "CGO_ENABLED=0" && go build $(GOOPT)
 
