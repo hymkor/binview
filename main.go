@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/mattn/go-colorable"
@@ -307,6 +308,42 @@ func readRune(cursor *large.Pointer) (rune, int, int) {
 	return theRune, currentPosInRune, theLen
 }
 
+func (app *Application) printDefaultStatusBar() {
+	io.WriteString(app.out, _ANSI_YELLOW)
+	fmt.Fprintf(app.out,
+		"%[1]c(%[2]d=0x%[2]X/%[3]d=0x%[3]X):%4[4]d=0x%02[4]X",
+		app.ChangedMark(),
+		app.cursor.Address(),
+		app.buffer.Len(),
+		app.cursor.Value())
+
+	theRune, thePosInRune, theLenOfRune := readRune(app.cursor)
+	if theRune != utf8.RuneError {
+		fmt.Fprintf(app.out, "(%d/%d:U+%X)",
+			thePosInRune+1,
+			theLenOfRune,
+			theRune)
+	} else {
+		io.WriteString(app.out, "(not UTF8)")
+	}
+	io.WriteString(app.out, ERASE_SCRN_AFTER)
+	io.WriteString(app.out, _ANSI_RESET)
+}
+
+func (app *Application) shiftWindowToSeeCursorLine() {
+	if app.cursor.Address() < app.window.Address() {
+		app.window = app.cursor.Clone()
+		if n := app.window.Address() % LINE_SIZE; n > 0 {
+			app.window.Rewind(n)
+		}
+	} else if app.cursor.Address() >= app.window.Address()+LINE_SIZE*int64(app.dataHeight()) {
+		app.window = app.cursor.Clone()
+		app.window.Rewind(
+			app.window.Address()%LINE_SIZE +
+				int64(LINE_SIZE*(app.dataHeight()-1)))
+	}
+}
+
 func mains(args []string) error {
 	disable := colorable.EnableColorsStdout(nil)
 	if disable != nil {
@@ -364,32 +401,34 @@ func mains(args []string) error {
 		if app.message != "" {
 			io.WriteString(app.out, _ANSI_YELLOW)
 			io.WriteString(app.out, runewidth.Truncate(app.message, app.screenWidth-1, ""))
+			io.WriteString(app.out, ERASE_SCRN_AFTER)
 			io.WriteString(app.out, _ANSI_RESET)
-			app.message = ""
 		} else {
-			fmt.Fprintf(app.out,
-				"\x1B[0;33;1m%[1]c(%[2]d=0x%[2]X/%[3]d=0x%[3]X):%4[4]d=0x%02[4]X",
-				app.ChangedMark(),
-				app.cursor.Address(),
-				app.buffer.Len(),
-				app.cursor.Value())
-
-			theRune, thePosInRune, theLenOfRune := readRune(app.cursor)
-			if theRune != utf8.RuneError {
-				fmt.Fprintf(app.out, "(%d/%d:U+%X)",
-					thePosInRune+1,
-					theLenOfRune,
-					theRune)
-			} else {
-				io.WriteString(app.out, "(not UTF8)")
-			}
-			io.WriteString(app.out, "\x1B[0m")
+			app.printDefaultStatusBar()
 		}
-		io.WriteString(app.out, ERASE_SCRN_AFTER)
-		ch, err := keyWorker.GetOr(func() bool { return app.buffer.Fetch() == nil })
+
+		const interval = 10
+		displayUpdateTime := time.Now().Add(time.Second / interval)
+
+		ch, err := keyWorker.GetOr(func() bool {
+			err := app.buffer.Fetch()
+			if err != nil && err != io.EOF {
+				return false
+			}
+			if app.message != "" {
+				return err == nil
+			}
+			if err == io.EOF || time.Now().After(displayUpdateTime) {
+				app.out.Write([]byte{'\r'})
+				app.printDefaultStatusBar()
+				displayUpdateTime = time.Now().Add(time.Second / interval)
+			}
+			return err == nil
+		})
 		if err != nil {
 			return err
 		}
+		app.message = ""
 		if hander, ok := jumpTable[ch]; ok {
 			if err := hander(app); err != nil {
 				return err
@@ -399,17 +438,8 @@ func mains(args []string) error {
 			return nil
 		}
 
-		if app.cursor.Address() < app.window.Address() {
-			app.window = app.cursor.Clone()
-			if n := app.window.Address() % LINE_SIZE; n > 0 {
-				app.window.Rewind(n)
-			}
-		} else if app.cursor.Address() >= app.window.Address()+LINE_SIZE*int64(app.dataHeight()) {
-			app.window = app.cursor.Clone()
-			app.window.Rewind(
-				app.window.Address()%LINE_SIZE +
-					int64(LINE_SIZE*(app.dataHeight()-1)))
-		}
+		app.shiftWindowToSeeCursorLine()
+
 		if lf > 0 {
 			fmt.Fprintf(app.out, "\r\x1B[%dA", lf)
 		} else {
