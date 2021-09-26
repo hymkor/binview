@@ -1,6 +1,8 @@
 Release notes
 =============
 
+- Update status-line even if no keys are typed
+
 0.3.0
 -----
 on Sep.23,2021
