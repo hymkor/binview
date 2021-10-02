@@ -17,6 +17,7 @@ import (
 	"github.com/nyaosorg/go-readline-ny"
 
 	"github.com/zetamatta/binview/internal/argf"
+	"github.com/zetamatta/binview/internal/encoding"
 	"github.com/zetamatta/binview/internal/large"
 	"github.com/zetamatta/binview/internal/nonblock"
 )
@@ -91,19 +92,7 @@ func makeHexPart(pointer *large.Pointer, cursorAddress int64, out *strings.Build
 	return true
 }
 
-func runeCount(b byte) int {
-	if 0xF0 <= b && b <= 0xF4 {
-		return 4
-	} else if 0xE0 <= b && b <= 0xEF {
-		return 3
-	} else if 0xC2 <= b && b <= 0xDF {
-		return 2
-	} else {
-		return 1
-	}
-}
-
-func makeAsciiPart(pointer *large.Pointer, cursorAddress int64, out *strings.Builder) bool {
+func makeAsciiPart(enc encoding.Encoding, pointer *large.Pointer, cursorAddress int64, out *strings.Builder) bool {
 	for i := 0; i < LINE_SIZE; {
 		var c rune
 		startAddress := pointer.Address()
@@ -119,15 +108,17 @@ func makeAsciiPart(pointer *large.Pointer, cursorAddress int64, out *strings.Bui
 			c = '.'
 		} else if b >= utf8.RuneSelf {
 			var runeBuffer [utf8.UTFMax]byte
-			length = runeCount(b)
+			savePointer := pointer.Clone()
+
+			length = enc.Count(b)
 			runeBuffer[0] = b
 			readCount := 1
-			savePointer := pointer.Clone()
 			for j := 1; j < length && pointer.Next() == nil; j++ {
 				runeBuffer[j] = pointer.Value()
 				readCount++
 			}
-			c, length = utf8.DecodeRune(runeBuffer[:readCount])
+			c, length = enc.Decode(runeBuffer[:readCount])
+
 			if c == utf8.RuneError {
 				c = '.'
 				length = 1
@@ -158,7 +149,7 @@ func makeAsciiPart(pointer *large.Pointer, cursorAddress int64, out *strings.Bui
 	return true
 }
 
-func makeLineImage(pointer *large.Pointer, cursorAddress int64) (string, bool) {
+func makeLineImage(enc encoding.Encoding, pointer *large.Pointer, cursorAddress int64) (string, bool) {
 	var out strings.Builder
 	off := ""
 	if p := pointer.Address(); p <= cursorAddress && cursorAddress < p+LINE_SIZE {
@@ -169,7 +160,7 @@ func makeLineImage(pointer *large.Pointer, cursorAddress int64) (string, bool) {
 	asciiPointer := *pointer
 	hasNextLine := makeHexPart(pointer, cursorAddress, &out)
 	out.WriteByte(' ')
-	makeAsciiPart(&asciiPointer, cursorAddress, &out)
+	makeAsciiPart(enc, &asciiPointer, cursorAddress, &out)
 
 	out.WriteString(ERASE_LINE)
 	out.WriteString(off)
@@ -184,7 +175,7 @@ func (app *Application) View() (int, error) {
 	cursor := app.window.Clone()
 	cursorAddress := app.cursor.Address()
 	for {
-		line, cont := makeLineImage(cursor, cursorAddress)
+		line, cont := makeLineImage(app.encoding, cursor, cursorAddress)
 
 		if f := app.cache[count]; f != line {
 			io.WriteString(out, line)
@@ -207,23 +198,6 @@ const (
 	_ANSI_UNDERLINE_OFF = "\x1B[24m"
 )
 
-const (
-	_KEY_CTRL_A = "\x01"
-	_KEY_CTRL_B = "\x02"
-	_KEY_CTRL_E = "\x05"
-	_KEY_CTRL_F = "\x06"
-	_KEY_CTRL_L = "\x0C"
-	_KEY_CTRL_N = "\x0E"
-	_KEY_CTRL_P = "\x10"
-	_KEY_DOWN   = "\x1B[B"
-	_KEY_ESC    = "\x1B"
-	_KEY_LEFT   = "\x1B[D"
-	_KEY_RIGHT  = "\x1B[C"
-	_KEY_UP     = "\x1B[A"
-	_KEY_F2     = "\x1B[OQ"
-	_KEY_DEL    = "\x1B[3~"
-)
-
 type Application struct {
 	tty1         *tty.TTY
 	in           io.Reader
@@ -238,6 +212,7 @@ type Application struct {
 	savePath     string
 	message      string
 	cache        map[int]string
+	encoding     encoding.Encoding
 }
 
 func (app *Application) dataHeight() int {
@@ -259,6 +234,7 @@ func NewApplication(in io.Reader, out io.Writer, defaultName string) (*Applicati
 		out:       out,
 		buffer:    large.NewBuffer(in),
 		clipBoard: NewClip(),
+		encoding:  encoding.UTF8Encoding{},
 	}
 	this.window = large.NewPointer(this.buffer)
 	if this.window == nil {
@@ -287,27 +263,6 @@ func (this *Application) Close() error {
 	return nil
 }
 
-func readRune(cursor *large.Pointer) (rune, int, int) {
-	cursor = cursor.Clone()
-	currentPosInRune := 0
-	for !utf8.RuneStart(cursor.Value()) && cursor.Prev() == nil {
-		currentPosInRune++
-	}
-	bytes := make([]byte, 0, utf8.UTFMax)
-	count := runeCount(cursor.Value())
-	for i := 0; i < count; i++ {
-		bytes = append(bytes, cursor.Value())
-		if cursor.Next() != nil {
-			break
-		}
-	}
-	theRune, theLen := utf8.DecodeRune(bytes)
-	if currentPosInRune >= theLen {
-		return utf8.RuneError, 0, 1
-	}
-	return theRune, currentPosInRune, theLen
-}
-
 func (app *Application) printDefaultStatusBar() {
 	io.WriteString(app.out, _ANSI_YELLOW)
 	fmt.Fprintf(app.out,
@@ -317,14 +272,14 @@ func (app *Application) printDefaultStatusBar() {
 		app.buffer.Len(),
 		app.cursor.Value())
 
-	theRune, thePosInRune, theLenOfRune := readRune(app.cursor)
+	theRune, thePosInRune, theLenOfRune := app.encoding.RuneOver(app.cursor.Clone())
 	if theRune != utf8.RuneError {
 		fmt.Fprintf(app.out, "(%d/%d:U+%X)",
 			thePosInRune+1,
 			theLenOfRune,
 			theRune)
 	} else {
-		io.WriteString(app.out, "(not UTF8)")
+		fmt.Fprintf(app.out, "(bin:'\\x%02X')", app.cursor.Value())
 	}
 	io.WriteString(app.out, ERASE_SCRN_AFTER)
 	io.WriteString(app.out, _ANSI_RESET)

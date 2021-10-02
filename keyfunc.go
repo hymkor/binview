@@ -6,8 +6,28 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/zetamatta/binview/internal/encoding"
 	"github.com/zetamatta/binview/internal/large"
 	"github.com/zetamatta/binview/internal/nonblock"
+)
+
+const (
+	_KEY_CTRL_A = "\x01"
+	_KEY_CTRL_B = "\x02"
+	_KEY_CTRL_E = "\x05"
+	_KEY_CTRL_F = "\x06"
+	_KEY_CTRL_L = "\x0C"
+	_KEY_CTRL_N = "\x0E"
+	_KEY_CTRL_P = "\x10"
+	_KEY_DOWN   = "\x1B[B"
+	_KEY_ESC    = "\x1B"
+	_KEY_LEFT   = "\x1B[D"
+	_KEY_RIGHT  = "\x1B[C"
+	_KEY_UP     = "\x1B[A"
+	_KEY_F2     = "\x1B[OQ"
+	_KEY_DEL    = "\x1B[3~"
+	_KEY_ALT_A  = "\x1Ba"
+	_KEY_ALT_U  = "\x1Bu"
 )
 
 // keyFuncNext moves the cursor to the the next 16-bytes block.
@@ -225,7 +245,19 @@ func keyFuncGoTo(app *Application) error {
 	return gotoAddress(app, address)
 }
 
+func keyFuncDbcsMode(app *Application) error {
+	app.encoding = encoding.DBCSEncoding{}
+	return nil
+}
+
+func keyFuncUtf8Mode(app *Application) error {
+	app.encoding = encoding.UTF8Encoding{}
+	return nil
+}
+
 var jumpTable = map[string]func(this *Application) error{
+	_KEY_ALT_A:  keyFuncDbcsMode,
+	_KEY_ALT_U:  keyFuncUtf8Mode,
 	"&":         keyFuncGoTo,
 	"q":         keyFuncQuit,
 	_KEY_ESC:    keyFuncQuit,
