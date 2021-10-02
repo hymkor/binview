@@ -18,6 +18,7 @@ all:
 	cd internal$(D)argf  && go fmt
 	cd internal$(D)large && go fmt
 	cd internal$(D)nonblock  && go fmt
+	cd internal$(D)encoding  && go fmt
 	go fmt
 	$(SET) "CGO_ENABLED=0" && go build $(GOOPT)
 
