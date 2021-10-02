@@ -9,5 +9,5 @@ require (
 	github.com/mattn/go-runewidth v0.0.13
 	github.com/mattn/go-tty v0.0.4-0.20201120140209-72ed86c4554d
 	github.com/nyaosorg/go-readline-ny v0.5.1
-	golang.org/x/sys v0.0.0-20210921065528-437939a70204 // indirect
+	golang.org/x/sys v0.0.0-20210921065528-437939a70204
 )
