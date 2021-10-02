@@ -2,6 +2,8 @@ Release notes
 =============
 
 - Update status-line even if no keys are typed
+- ALT-A: Change the encoding on the sidearea to the current codepage (Windows-Only)
+- ALT-U: Change the encoding on the sidearea to UTF8 (default)
 
 0.3.0
 -----

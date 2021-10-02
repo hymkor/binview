@@ -58,6 +58,10 @@ Key-binding
     * output to file
 * &amp;
     * move the cursor to the address input
+* ALT-U
+    * Change the encoding on the sidearea to UTF8 (default)
+* ALT-A
+    * Change the encoding on the sidearea to the current codepage (Windows-Only)
 
 Release Note
 ============
