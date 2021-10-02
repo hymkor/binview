@@ -25,18 +25,25 @@ import (
 const LINE_SIZE = 16
 
 const (
-	CURSOR_COLOR_ON  = "\x1B[37;40;1;7m"
-	CURSOR_COLOR_OFF = "\x1B[27;22m"
-	CELL1_COLOR_ON   = "\x1B[37;40;22m"
-	CELL1_COLOR_OFF  = ""
-	CELL2_COLOR_ON   = "\x1B[37;40;1m"
-	CELL2_COLOR_OFF  = "\x1B[22m"
-	ERASE_LINE       = "\x1B[0K"
-	ERASE_SCRN_AFTER = "\x1B[0J"
+	_ANSI_CURSOR_OFF       = "\x1B[?25l"
+	_ANSI_CURSOR_ON        = "\x1B[?25h"
+	_ANSI_YELLOW           = "\x1B[0;33;1m"
+	_ANSI_RESET            = "\x1B[0m"
+	_ANSI_UNDERLINE_ON     = "\x1B[4m"
+	_ANSI_UNDERLINE_OFF    = "\x1B[24m"
+	_ANSI_ERASE_LINE       = "\x1B[0K"
+	_ANSI_ERASE_SCRN_AFTER = "\x1B[0J"
+
+	_CURSOR_COLOR_ON  = "\x1B[37;40;1;7m"
+	_CURSOR_COLOR_OFF = "\x1B[27;22m"
+	_CELL1_COLOR_ON   = "\x1B[37;40;22m"
+	_CELL1_COLOR_OFF  = ""
+	_CELL2_COLOR_ON   = "\x1B[37;40;1m"
+	_CELL2_COLOR_OFF  = "\x1B[22m"
 )
 
-// for Line feed
 const (
+	// for Line feed
 	_ARROW_POINTING_DOWNWARDS_THEN_CURVING_LEFTWARDS = '\u2936'
 	_DOWNWARDS_ARROW_WITH_CORNER_LEFTWARDS           = '\u21B5'
 	_DOWNWARDS_ARROW_WITH_TIP_LEFTWARDS              = '\u21B2'
@@ -45,17 +52,13 @@ const (
 	_SYMBOL_FOR_LINE_FEED                            = '\u240A'
 	_DOWNWARDS_ARROW                                 = '\u2193' // wide
 	_HALFWIDTH_DOWNWARDS_ARROW                       = '\uFFEC'
-)
 
-// for carriage return
-const (
+	// for carriage return
 	_SYMBOL_FOR_CARRIAGE_RETURN = '\u240D' // CR
 	_LEFTWARDS_ARROW            = '\u2190' // wide
 	_HALFWIDTH_LEFTWARDS_ARROW  = '\uFFE9' // <-
-)
 
-// for tab
-const (
+	// for tab
 	_SYMBOL_FOR_HORIZONTAL_TABULATION        = '\u2409' // HT
 	_RIGHTWARDS_ARROW_TO_BAR                 = '\u21E5' // ->|
 	_RIGHTWARDS_TRIANGLE_HEADED_ARROW_TO_BAR = '\u2B72' // ->|
@@ -66,19 +69,19 @@ var version string = "snapshot"
 // See. en.wikipedia.org/wiki/Unicode_control_characters#Control_pictures
 
 func makeHexPart(pointer *large.Pointer, cursorAddress int64, out *strings.Builder) bool {
-	fmt.Fprintf(out, "%s%08X%s ", CELL2_COLOR_ON, pointer.Address(), CELL2_COLOR_OFF)
+	fmt.Fprintf(out, "%s%08X%s ", _CELL2_COLOR_ON, pointer.Address(), _CELL2_COLOR_OFF)
 	var fieldSeperator string
 	for i := 0; i < LINE_SIZE; i++ {
 		var on, off string
 		if pointer.Address() == cursorAddress {
-			on = CURSOR_COLOR_ON
-			off = CURSOR_COLOR_OFF
+			on = _CURSOR_COLOR_ON
+			off = _CURSOR_COLOR_OFF
 		} else if ((i >> 2) & 1) == 0 {
-			on = CELL1_COLOR_ON
-			off = CELL1_COLOR_OFF
+			on = _CELL1_COLOR_ON
+			off = _CELL1_COLOR_OFF
 		} else {
-			on = CELL2_COLOR_ON
-			off = CELL2_COLOR_OFF
+			on = _CELL2_COLOR_ON
+			off = _CELL2_COLOR_OFF
 		}
 		fmt.Fprintf(out, "%s%s%02X%s", fieldSeperator, on, pointer.Value(), off)
 		if err := pointer.Next(); err != nil {
@@ -128,13 +131,13 @@ func makeAsciiPart(enc encoding.Encoding, pointer *large.Pointer, cursorAddress 
 			c = rune(b)
 		}
 		if startAddress <= cursorAddress && cursorAddress <= pointer.Address() {
-			out.WriteString(CURSOR_COLOR_ON)
+			out.WriteString(_CURSOR_COLOR_ON)
 			out.WriteRune(c)
-			out.WriteString(CURSOR_COLOR_OFF)
+			out.WriteString(_CURSOR_COLOR_OFF)
 		} else {
-			out.WriteString(CELL1_COLOR_ON)
+			out.WriteString(_CELL1_COLOR_ON)
 			out.WriteRune(c)
-			out.WriteString(CELL1_COLOR_OFF)
+			out.WriteString(_CELL1_COLOR_OFF)
 		}
 		if length == 3 {
 			out.WriteByte(' ')
@@ -162,7 +165,7 @@ func makeLineImage(enc encoding.Encoding, pointer *large.Pointer, cursorAddress 
 	out.WriteByte(' ')
 	makeAsciiPart(enc, &asciiPointer, cursorAddress, &out)
 
-	out.WriteString(ERASE_LINE)
+	out.WriteString(_ANSI_ERASE_LINE)
 	out.WriteString(off)
 	return out.String(), hasNextLine
 }
@@ -188,15 +191,6 @@ func (app *Application) View() (int, error) {
 		io.WriteString(out, "\r\n") // "\r" is for Linux and go-tty
 	}
 }
-
-const (
-	_ANSI_CURSOR_OFF    = "\x1B[?25l"
-	_ANSI_CURSOR_ON     = "\x1B[?25h"
-	_ANSI_YELLOW        = "\x1B[0;33;1m"
-	_ANSI_RESET         = "\x1B[0m"
-	_ANSI_UNDERLINE_ON  = "\x1B[4m"
-	_ANSI_UNDERLINE_OFF = "\x1B[24m"
-)
 
 type Application struct {
 	tty1         *tty.TTY
@@ -281,7 +275,7 @@ func (app *Application) printDefaultStatusBar() {
 		app.cursor.Address(),
 		app.buffer.Len())
 
-	io.WriteString(app.out, ERASE_SCRN_AFTER)
+	io.WriteString(app.out, _ANSI_ERASE_SCRN_AFTER)
 	io.WriteString(app.out, _ANSI_RESET)
 }
 
@@ -356,7 +350,7 @@ func mains(args []string) error {
 		if app.message != "" {
 			io.WriteString(app.out, _ANSI_YELLOW)
 			io.WriteString(app.out, runewidth.Truncate(app.message, app.screenWidth-1, ""))
-			io.WriteString(app.out, ERASE_SCRN_AFTER)
+			io.WriteString(app.out, _ANSI_ERASE_SCRN_AFTER)
 			io.WriteString(app.out, _ANSI_RESET)
 		} else {
 			app.printDefaultStatusBar()

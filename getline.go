@@ -17,7 +17,7 @@ func getline(out io.Writer, prompt string, defaultStr string) (string, error) {
 		Default: defaultStr,
 		Cursor:  65535,
 		Prompt: func() (int, error) {
-			fmt.Fprintf(out, "\r\x1B[0;33;40;1m%s%s", prompt, ERASE_LINE)
+			fmt.Fprintf(out, "\r\x1B[0;33;40;1m%s%s", prompt, _ANSI_ERASE_LINE)
 			return 2, nil
 		},
 		LineFeed: func(readline.Result) {},
@@ -32,7 +32,7 @@ func getline(out io.Writer, prompt string, defaultStr string) (string, error) {
 }
 
 func yesNo(tty1 Tty, out io.Writer, message string) bool {
-	fmt.Fprintf(out, "%s\r%s%s", _ANSI_YELLOW, message, ERASE_LINE)
+	fmt.Fprintf(out, "%s\r%s%s", _ANSI_YELLOW, message, _ANSI_ERASE_LINE)
 	ch, err := readline.GetKey(tty1)
 	return err == nil && ch == "y"
 }
