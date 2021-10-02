@@ -219,14 +219,6 @@ func (app *Application) dataHeight() int {
 	return app.screenHeight - 1
 }
 
-func (app *Application) ChangedMark() rune {
-	if app.dirty {
-		return '*'
-	} else {
-		return ' '
-	}
-}
-
 func NewApplication(in io.Reader, out io.Writer, defaultName string) (*Application, error) {
 	this := &Application{
 		savePath:  defaultName,
@@ -265,22 +257,30 @@ func (this *Application) Close() error {
 
 func (app *Application) printDefaultStatusBar() {
 	io.WriteString(app.out, _ANSI_YELLOW)
-	fmt.Fprintf(app.out,
-		"%[1]c(%[2]d=0x%[2]X/%[3]d=0x%[3]X):%4[4]d=0x%02[4]X",
-		app.ChangedMark(),
-		app.cursor.Address(),
-		app.buffer.Len(),
-		app.cursor.Value())
+	if app.dirty {
+		io.WriteString(app.out, "*")
+	} else {
+		io.WriteString(app.out, " ")
+	}
+	fmt.Fprintf(app.out, "[%s]", app.encoding.ModeString())
+
+	fmt.Fprintf(app.out, "%4[1]d='\\x%02[1]X'", app.cursor.Value())
 
 	theRune, thePosInRune, theLenOfRune := app.encoding.RuneOver(app.cursor.Clone())
 	if theRune != utf8.RuneError {
-		fmt.Fprintf(app.out, "(%d/%d:U+%X)",
+		fmt.Fprintf(app.out, "(%d/%d:U+%04X)",
 			thePosInRune+1,
 			theLenOfRune,
 			theRune)
 	} else {
 		fmt.Fprintf(app.out, "(bin:'\\x%02X')", app.cursor.Value())
 	}
+
+	fmt.Fprintf(app.out,
+		" @ %[1]d=0x%[1]X/%[2]d=0x%[2]X",
+		app.cursor.Address(),
+		app.buffer.Len())
+
 	io.WriteString(app.out, ERASE_SCRN_AFTER)
 	io.WriteString(app.out, _ANSI_RESET)
 }
