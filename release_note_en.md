@@ -2,12 +2,12 @@ Release notes
 =============
 
 - Update status-line even if no keys are typed
-- ALT-A: Change the encoding on the sidearea to the current codepage (Windows-Only)
-- ALT-U: Change the encoding on the sidearea to UTF8 (default)
+- ALT-A: Change the character encoding to the current codepage (Windows-Only)
+- ALT-U: Change the character encoding to UTF8 (default)
 
 0.3.0
 -----
-on Sep.23,2021
+on Sep 23,2021
 
 - Fix the problem that the utf8-rune on the line boundary could not be drawn
 - `w`: restore the last saved filename as the next saving
