@@ -1,6 +1,10 @@
 Release notes
 =============
 
+0.4.0
+-----
+on Oct 9,2021
+
 - Update status-line even if no keys are typed
 - ALT-A: Change the character encoding to the current codepage (Windows-Only)
 - ALT-U: Change the character encoding to UTF8 (default)
