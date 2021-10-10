@@ -124,3 +124,9 @@ func TestEmptyData(t *testing.T) {
 		return
 	}
 }
+
+func TestEndOfLineOnShortData(t *testing.T) {
+	try(t, "012345", "01234\0005",
+		keyFuncGoEndOfLine,
+		keyFuncInsertByte)
+}
