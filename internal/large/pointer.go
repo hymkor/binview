@@ -82,6 +82,10 @@ func (p *Pointer) Skip(n int64) error {
 		nextElement := p.element.Next()
 		if nextElement == nil {
 			if err := p.buffer.Fetch(); err != nil {
+				// move cursor the end of the current block
+				moveBytes := len(p.element.Value.(_Block)) - p.offset - 1
+				p.offset += moveBytes
+				p.address += int64(moveBytes)
 				return err
 			}
 			nextElement = p.buffer.lines.Back()
