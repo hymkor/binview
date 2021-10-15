@@ -1,6 +1,10 @@
 Release notes
 =============
 
+0.4.1
+-----
+on Oct 15,2021
+
 - Fix: `$` does not move the cursor when the current line is less then 16 bytes
 
 0.4.0
