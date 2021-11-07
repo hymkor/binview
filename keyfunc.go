@@ -8,6 +8,9 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/nyaosorg/go-readline-ny"
+	"github.com/nyaosorg/go-readline-ny/simplehistory"
+
 	"github.com/zetamatta/binview/internal/encoding"
 	"github.com/zetamatta/binview/internal/large"
 	"github.com/zetamatta/binview/internal/nonblock"
@@ -153,18 +156,20 @@ func keyFuncRemoveByte(this *Application) error {
 
 var overWritten = map[string]struct{}{}
 
-func getlineOr(out io.Writer, prompt string, defaultString string, f func() bool) (string, error) {
+func getlineOr(out io.Writer, prompt string, defaultString string, history readline.IHistory, f func() bool) (string, error) {
 	worker := nonblock.New(func() (string, error) {
-		return getline(out, prompt, defaultString)
+		return getline(out, prompt, defaultString, history)
 	})
 	result, err := worker.GetOr(f)
 	worker.Close()
 	return result, err
 }
 
+var fnameHistory = simplehistory.New()
+
 func writeFile(buffer *large.Buffer, tty1 Tty, out io.Writer, fname string) (string, error) {
 	var err error
-	fname, err = getlineOr(out, "write to>", fname, func() bool { return buffer.Fetch() == nil })
+	fname, err = getlineOr(out, "write to>", fname, fnameHistory, func() bool { return buffer.Fetch() == nil })
 	if err != nil {
 		return "", err
 	}
@@ -187,6 +192,7 @@ func writeFile(buffer *large.Buffer, tty1 Tty, out io.Writer, fname string) (str
 		return "", err
 	}
 	buffer.WriteTo(fd)
+	fnameHistory.Add(fname)
 	return fname, fd.Close()
 }
 
@@ -201,9 +207,12 @@ func keyFuncWriteFile(this *Application) error {
 	return nil
 }
 
+var byteHistory = simplehistory.New()
+
 func keyFuncReplaceByte(this *Application) error {
 	bytes, err := getlineOr(this.out, "replace>",
 		fmt.Sprintf("0x%02X", this.cursor.Value()),
+		byteHistory,
 		func() bool { return this.buffer.Fetch() == nil })
 	if err != nil {
 		this.message = err.Error()
@@ -212,6 +221,7 @@ func keyFuncReplaceByte(this *Application) error {
 	if n, err := strconv.ParseUint(bytes, 0, 8); err == nil {
 		this.cursor.SetValue(byte(n))
 		this.dirty = true
+		byteHistory.Add(bytes)
 	} else {
 		this.message = err.Error()
 	}
@@ -233,8 +243,10 @@ func gotoAddress(app *Application, address int64) error {
 	return nil
 }
 
+var addressHistory = simplehistory.New()
+
 func keyFuncGoTo(app *Application) error {
-	addressStr, err := getlineOr(app.out, "Goto Offset>", "0x", func() bool {
+	addressStr, err := getlineOr(app.out, "Goto Offset>", "0x", addressHistory, func() bool {
 		return app.buffer.Fetch() == nil
 	})
 	if err != nil {
@@ -246,6 +258,7 @@ func keyFuncGoTo(app *Application) error {
 		app.message = err.Error()
 		return nil
 	}
+	addressHistory.Add(addressStr)
 	return gotoAddress(app, address)
 }
 
@@ -295,11 +308,14 @@ func keyFuncAppendData(app *Application) error {
 	return nil
 }
 
+var dataHistory = simplehistory.New()
+
 func readData(app *Application, prompt string) ([]byte, error) {
-	str, err := getlineOr(app.out, prompt, "0x00", func() bool { return app.buffer.Fetch() == nil })
+	str, err := getlineOr(app.out, prompt, "0x00", dataHistory, func() bool { return app.buffer.Fetch() == nil })
 	if err != nil {
 		return nil, err
 	}
+	dataHistory.Add(str)
 	var buffer bytes.Buffer
 	for len(str) > 0 {
 		if m := rxUnicodeCodePoint.FindStringSubmatch(str); m != nil {

@@ -11,7 +11,7 @@ import (
 
 type Tty = readline.MinimumTty
 
-func getline(out io.Writer, prompt string, defaultStr string) (string, error) {
+func getline(out io.Writer, prompt string, defaultStr string, history readline.IHistory) (string, error) {
 	editor := readline.Editor{
 		Writer:  out,
 		Default: defaultStr,
@@ -21,6 +21,7 @@ func getline(out io.Writer, prompt string, defaultStr string) (string, error) {
 			return 2, nil
 		},
 		LineFeed: func(readline.Result) {},
+		History:  history,
 	}
 	defer io.WriteString(out, _ANSI_CURSOR_OFF)
 	editor.BindKeySymbol(readline.K_ESCAPE, readline.F_INTR)
