@@ -127,7 +127,7 @@ func (p *Pointer) Append(value byte) {
 	p.element.Value = _Block(block)
 }
 
-func (p *Pointer) MakeSpace(size int) []byte {
+func (p *Pointer) makeSpace(size int) _Block {
 	block := p.element.Value.(_Block)
 	if len(block) > size {
 		block = append(block, block[len(block)-size:]...)
@@ -136,11 +136,21 @@ func (p *Pointer) MakeSpace(size int) []byte {
 			block = append(block, 0)
 		}
 	}
-	copy(block[p.offset+size:], block[p.offset:])
-
 	p.element.Value = block
 	p.buffer.allsize += int64(size)
+	return block
+}
+
+func (p *Pointer) MakeSpace(size int) []byte {
+	block := p.makeSpace(size)
+	copy(block[p.offset+size:], block[p.offset:])
 	return block[p.offset : p.offset+size]
+}
+
+func (p Pointer) MakeSpaceAfter(size int) []byte {
+	block := p.makeSpace(size)
+	copy(block[p.offset+size+1:], block[p.offset+1:])
+	return block[p.offset+1 : p.offset+size+1]
 }
 
 const (

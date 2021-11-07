@@ -270,15 +270,35 @@ func keyFuncUtf16BeMode(app *Application) error {
 }
 
 var (
-	rxUnicodeCodePoint = regexp.MustCompile(`^\s*U\+([0-9A-F]+)`)
-	rxByte             = regexp.MustCompile(`^\s*0x([0-9A-F]+)`)
-	rxString           = regexp.MustCompile(`^\s*"([^"]+)"`)
+	rxUnicodeCodePoint = regexp.MustCompile(`^\s*[uU]\+([0-9A-Fa-f]+)`)
+	rxByte             = regexp.MustCompile(`^\s*0x([0-9A-Fa-f]+)`)
+	rxString           = regexp.MustCompile(`^\s*[uU]?"([^"]+)"`)
 )
 
-func keyFuncInsertString(app *Application) error {
-	str, err := getlineOr(app.out, "insert>", "0x00", func() bool { return app.buffer.Fetch() == nil })
+func keyFuncInsertData(app *Application) error {
+	data, err := readData(app, "insert>")
 	if err != nil {
-		return err
+		app.message = err.Error()
+	}
+	insertArea := app.cursor.MakeSpace(len(data))
+	copy(insertArea, data)
+	return nil
+}
+
+func keyFuncAppendData(app *Application) error {
+	data, err := readData(app, "append>")
+	if err != nil {
+		app.message = err.Error()
+	}
+	insertArea := app.cursor.MakeSpaceAfter(len(data))
+	copy(insertArea, data)
+	return nil
+}
+
+func readData(app *Application, prompt string) ([]byte, error) {
+	str, err := getlineOr(app.out, prompt, "0x00", func() bool { return app.buffer.Fetch() == nil })
+	if err != nil {
+		return nil, err
 	}
 	var buffer bytes.Buffer
 	for len(str) > 0 {
@@ -286,16 +306,14 @@ func keyFuncInsertString(app *Application) error {
 			str = str[len(m[0]):]
 			theRune, err := strconv.ParseUint(m[1], 16, 32)
 			if err != nil {
-				app.message = err.Error()
-				return nil
+				return nil, err
 			}
 			buffer.WriteRune(rune(theRune))
 		} else if m := rxByte.FindStringSubmatch(str); m != nil {
 			str = str[len(m[0]):]
 			theByte, err := strconv.ParseUint(m[1], 16, 16)
 			if err != nil {
-				app.message = err.Error()
-				return nil
+				return nil, err
 			}
 			buffer.WriteByte(byte(theByte))
 		} else if m := rxString.FindStringSubmatch(str); m != nil {
@@ -306,13 +324,12 @@ func keyFuncInsertString(app *Application) error {
 			break
 		}
 	}
-	insertArea := app.cursor.MakeSpace(buffer.Len())
-	copy(insertArea, buffer.Bytes())
-	return nil
+	return buffer.Bytes(), nil
 }
 
 var jumpTable = map[string]func(this *Application) error{
-	"I":         keyFuncInsertString,
+	"I":         keyFuncInsertData,
+	"A":         keyFuncAppendData,
 	_KEY_ALT_A:  keyFuncDbcsMode,
 	_KEY_ALT_U:  keyFuncUtf8Mode,
 	_KEY_ALT_L:  keyFuncUtf16LeMode,
