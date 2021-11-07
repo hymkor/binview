@@ -6,6 +6,7 @@ Release notes
 - Show some unicode's name(ByteOrderMark,ZeroWidthjoin) on the status line
 - I: insert data (for example: `0xFF`,`U+0000`,`"utf8string"`)
 - A: append data (for example: `0xFF`,`U+0000`,`"utf8string"`)
+- Support history on getline
 
 0.4.1
 -----
