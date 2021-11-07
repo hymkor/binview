@@ -29,6 +29,7 @@ const (
 	_KEY_ALT_A  = "\x1Ba"
 	_KEY_ALT_U  = "\x1Bu"
 	_KEY_ALT_L  = "\x1Bl"
+	_KEY_ALT_B  = "\x1Bb"
 )
 
 // keyFuncNext moves the cursor to the the next 16-bytes block.
@@ -257,7 +258,12 @@ func keyFuncUtf8Mode(app *Application) error {
 }
 
 func keyFuncUtf16LeMode(app *Application) error {
-	app.encoding = encoding.UTF16LE{}
+	app.encoding = encoding.UTF16LE()
+	return nil
+}
+
+func keyFuncUtf16BeMode(app *Application) error {
+	app.encoding = encoding.UTF16BE()
 	return nil
 }
 
@@ -265,6 +271,7 @@ var jumpTable = map[string]func(this *Application) error{
 	_KEY_ALT_A:  keyFuncDbcsMode,
 	_KEY_ALT_U:  keyFuncUtf8Mode,
 	_KEY_ALT_L:  keyFuncUtf16LeMode,
+	_KEY_ALT_B:  keyFuncUtf16BeMode,
 	"&":         keyFuncGoTo,
 	"q":         keyFuncQuit,
 	_KEY_ESC:    keyFuncQuit,

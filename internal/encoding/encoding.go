@@ -87,9 +87,27 @@ func (DBCSEncoding) ModeString() string {
 	return "ANSI"
 }
 
-type UTF16LE struct{}
+type _UTF16 struct {
+	isLittleEndian bool
+}
 
-func (UTF16LE) Count(_ byte, address int64) int {
+func (this _UTF16) utf16ToRune(first, second rune) rune {
+	if this.isLittleEndian {
+		return (second << 8) | (first & 255)
+	} else {
+		return (first << 8) | (second & 255)
+	}
+}
+
+func UTF16LE() Encoding {
+	return _UTF16{isLittleEndian: true}
+}
+
+func UTF16BE() Encoding {
+	return _UTF16{isLittleEndian: false}
+}
+
+func (_UTF16) Count(_ byte, address int64) int {
 	if address%2 == 0 {
 		return 2
 	} else {
@@ -97,32 +115,36 @@ func (UTF16LE) Count(_ byte, address int64) int {
 	}
 }
 
-func (UTF16LE) Decode(data []byte) (rune, int) {
+func (this _UTF16) Decode(data []byte) (rune, int) {
 	if len(data) == 2 {
-		return (rune(data[1]) << 8) | (rune(data[0]) & 255), 2
+		return this.utf16ToRune(rune(data[0]), rune(data[1])), 2
 	} else {
 		return utf8.RuneError, 1
 	}
 }
 
-func (UTF16LE) RuneOver(cursor Pointer) (rune, int, int) {
+func (this _UTF16) RuneOver(cursor Pointer) (rune, int, int) {
 	currentPosInRune := 0
 	theRune := rune(cursor.Value())
 	if cursor.Address()%2 != 0 { // the second byte
 		if cursor.Prev() != nil {
 			return utf8.RuneError, 0, 1
 		}
-		theRune = (rune(cursor.Value()) << 8) | (theRune & 255)
+		theRune = this.utf16ToRune(rune(cursor.Value()), theRune)
 		currentPosInRune++
 	} else { // the first byte
 		if cursor.Next() != nil {
 			return utf8.RuneError, 0, 1
 		}
-		theRune = (theRune << 8) | (rune(cursor.Value()) & 255)
+		theRune = this.utf16ToRune(theRune, rune(cursor.Value()))
 	}
 	return theRune, currentPosInRune, 2
 }
 
-func (UTF16LE) ModeString() string {
-	return "16LE"
+func (this _UTF16) ModeString() string {
+	if this.isLittleEndian {
+		return "16LE"
+	} else {
+		return "16BE"
+	}
 }
