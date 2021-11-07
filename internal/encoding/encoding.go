@@ -8,6 +8,7 @@ type Pointer interface {
 	Value() byte
 	Next() error
 	Prev() error
+	Address() int64
 }
 
 type Encoding interface {
@@ -84,4 +85,44 @@ func (DBCSEncoding) RuneOver(cursor Pointer) (rune, int, int) {
 
 func (DBCSEncoding) ModeString() string {
 	return "ANSI"
+}
+
+type UTF16LE struct{}
+
+func (UTF16LE) Count(_ byte, address int64) int {
+	if address%2 == 0 {
+		return 2
+	} else {
+		return 1
+	}
+}
+
+func (UTF16LE) Decode(data []byte) (rune, int) {
+	if len(data) == 2 {
+		return (rune(data[1]) << 8) | (rune(data[0]) & 255), 2
+	} else {
+		return utf8.RuneError, 1
+	}
+}
+
+func (UTF16LE) RuneOver(cursor Pointer) (rune, int, int) {
+	currentPosInRune := 0
+	theRune := rune(cursor.Value())
+	if cursor.Address()%2 != 0 { // the second byte
+		if cursor.Prev() != nil {
+			return utf8.RuneError, 0, 1
+		}
+		theRune = (rune(cursor.Value()) << 8) | (theRune & 255)
+		currentPosInRune++
+	} else { // the first byte
+		if cursor.Next() != nil {
+			return utf8.RuneError, 0, 1
+		}
+		theRune = (theRune << 8) | (rune(cursor.Value()) & 255)
+	}
+	return theRune, currentPosInRune, 2
+}
+
+func (UTF16LE) ModeString() string {
+	return "16LE"
 }

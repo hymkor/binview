@@ -100,36 +100,35 @@ func makeAsciiPart(enc encoding.Encoding, pointer *large.Pointer, cursorAddress 
 		var c rune
 		startAddress := pointer.Address()
 		b := pointer.Value()
-		length := 1
-		if b == '\u000A' {
-			c = _HALFWIDTH_DOWNWARDS_ARROW
-		} else if b == '\u000D' {
-			c = _HALFWIDTH_LEFTWARDS_ARROW
-		} else if b == '\t' {
-			c = _RIGHTWARDS_ARROW_TO_BAR
-		} else if b < ' ' || b == '\u007F' {
-			c = '.'
-		} else if b >= utf8.RuneSelf {
-			var runeBuffer [utf8.UTFMax]byte
-			savePointer := pointer.Clone()
 
-			length = enc.Count(b, pointer.Address())
-			runeBuffer[0] = b
-			readCount := 1
-			for j := 1; j < length && pointer.Next() == nil; j++ {
-				runeBuffer[j] = pointer.Value()
-				readCount++
-			}
-			c, length = enc.Decode(runeBuffer[:readCount])
+		var runeBuffer [utf8.UTFMax]byte
+		savePointer := pointer.Clone()
 
-			if c == utf8.RuneError {
-				c = '.'
-				length = 1
-				pointer = savePointer
-			}
-		} else {
-			c = rune(b)
+		length := enc.Count(b, pointer.Address())
+		runeBuffer[0] = b
+		readCount := 1
+		for j := 1; j < length && pointer.Next() == nil; j++ {
+			runeBuffer[j] = pointer.Value()
+			readCount++
 		}
+		c, length = enc.Decode(runeBuffer[:readCount])
+
+		if c == utf8.RuneError {
+			c = '.'
+			length = 1
+			pointer = savePointer
+		}
+
+		if c == '\u000A' {
+			c = _HALFWIDTH_DOWNWARDS_ARROW
+		} else if c == '\u000D' {
+			c = _HALFWIDTH_LEFTWARDS_ARROW
+		} else if c == '\t' {
+			c = _RIGHTWARDS_ARROW_TO_BAR
+		} else if c < ' ' || c == '\u007F' {
+			c = '.'
+		}
+
 		if startAddress <= cursorAddress && cursorAddress <= pointer.Address() {
 			out.WriteString(_CURSOR_COLOR_ON)
 			out.WriteRune(c)
