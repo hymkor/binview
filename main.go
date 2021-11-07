@@ -248,6 +248,12 @@ func (this *Application) Close() error {
 	return nil
 }
 
+var unicodeName = map[rune]string{
+	'\uFEFF': "ByteOrderMark",
+	'\uFFFE': "Reverted ByteOrderMark",
+	'\u200D': "ZeroWidthJoin",
+}
+
 func (app *Application) printDefaultStatusBar() {
 	io.WriteString(app.out, _ANSI_YELLOW)
 	if app.dirty {
@@ -261,10 +267,14 @@ func (app *Application) printDefaultStatusBar() {
 
 	theRune, thePosInRune, theLenOfRune := app.encoding.RuneOver(app.cursor.Clone())
 	if theRune != utf8.RuneError {
-		fmt.Fprintf(app.out, "(%d/%d:U+%04X)",
+		fmt.Fprintf(app.out, "(%d/%d:U+%04X",
 			thePosInRune+1,
 			theLenOfRune,
 			theRune)
+		if name, ok := unicodeName[theRune]; ok {
+			fmt.Fprintf(app.out, ":%s", name)
+		}
+		app.out.Write([]byte{')'})
 	} else {
 		fmt.Fprintf(app.out, "(bin:'\\x%02X')", app.cursor.Value())
 	}
