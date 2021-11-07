@@ -4,6 +4,9 @@ import (
 	"testing"
 )
 
+var _ Encoding = UTF8Encoding{}
+var _ Encoding = DBCSEncoding{}
+
 func TestIsDBCSLeadByte(t *testing.T) {
 	if !IsDBCSLeadByte(0x83) { // Japanese katakana SO
 		t.Fail()

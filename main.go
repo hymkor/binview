@@ -113,7 +113,7 @@ func makeAsciiPart(enc encoding.Encoding, pointer *large.Pointer, cursorAddress 
 			var runeBuffer [utf8.UTFMax]byte
 			savePointer := pointer.Clone()
 
-			length = enc.Count(b)
+			length = enc.Count(b, pointer.Address())
 			runeBuffer[0] = b
 			readCount := 1
 			for j := 1; j < length && pointer.Next() == nil; j++ {

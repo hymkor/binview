@@ -11,7 +11,7 @@ type Pointer interface {
 }
 
 type Encoding interface {
-	Count(byte) int
+	Count(value byte, at int64) int
 	Decode([]byte) (rune, int)
 	RuneOver(Pointer) (rune, int, int)
 	ModeString() string
@@ -19,7 +19,7 @@ type Encoding interface {
 
 type UTF8Encoding struct{}
 
-func (UTF8Encoding) Count(b byte) int {
+func (UTF8Encoding) Count(b byte, _ int64) int {
 	if 0xF0 <= b && b <= 0xF4 {
 		return 4
 	} else if 0xE0 <= b && b <= 0xEF {
@@ -41,7 +41,7 @@ func (enc UTF8Encoding) RuneOver(cursor Pointer) (rune, int, int) {
 		currentPosInRune++
 	}
 	bytes := make([]byte, 0, utf8.UTFMax)
-	count := enc.Count(cursor.Value())
+	count := enc.Count(cursor.Value(), 0)
 	for i := 0; i < count; i++ {
 		bytes = append(bytes, cursor.Value())
 		if cursor.Next() != nil {
@@ -61,8 +61,8 @@ func (UTF8Encoding) ModeString() string {
 
 type DBCSEncoding struct{}
 
-func (DBCSEncoding) Count(b byte) int {
-	if IsDBCSLeadByte(b) {
+func (DBCSEncoding) Count(value byte, _ int64) int {
+	if IsDBCSLeadByte(value) {
 		return 2
 	} else {
 		return 1
