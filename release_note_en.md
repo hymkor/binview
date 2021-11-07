@@ -4,6 +4,8 @@ Release notes
 - ALT-L: Change the character encoding to UTF16LE
 - ALT-B: Change the character encoding to UTF16BE
 - Show some unicode's name(ByteOrderMark,ZeroWidthjoin) on the status line
+- I: insert data (for example: `0xFF`,`U+0000`,`"utf8string"`)
+- A: append data (for example: `0xFF`,`U+0000`,`"utf8string"`)
 
 0.4.1
 -----
