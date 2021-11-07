@@ -11,15 +11,15 @@ type _Block = []byte
 var ALLOC_SIZE = 4096
 
 type Buffer struct {
-	lines *list.List
-	*bufio.Reader
+	lines   *list.List
+	reader  *bufio.Reader
 	allsize int64
 }
 
 func NewBuffer(r io.Reader) *Buffer {
 	return &Buffer{
 		lines:   list.New(),
-		Reader:  bufio.NewReader(r),
+		reader:  bufio.NewReader(r),
 		allsize: 0,
 	}
 }
@@ -29,18 +29,18 @@ func (b *Buffer) Len() int64 {
 }
 
 func (b *Buffer) Fetch() error {
-	if b.Reader == nil {
+	if b.reader == nil {
 		return io.EOF
 	}
 	buffer := make([]byte, ALLOC_SIZE)
-	n, err := b.Reader.Read(buffer)
+	n, err := b.reader.Read(buffer)
 
 	if n > 0 {
 		b.lines.PushBack(_Block(buffer[:n]))
 		b.allsize += int64(n)
 	}
 	if err != nil {
-		b.Reader = nil
+		b.reader = nil
 	}
 	return err
 }
