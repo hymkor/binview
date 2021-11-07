@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strconv"
 
 	"github.com/zetamatta/binview/internal/encoding"
@@ -267,7 +269,50 @@ func keyFuncUtf16BeMode(app *Application) error {
 	return nil
 }
 
+var (
+	rxUnicodeCodePoint = regexp.MustCompile(`^\s*U\+([0-9A-F]+)`)
+	rxByte             = regexp.MustCompile(`^\s*0x([0-9A-F]+)`)
+	rxString           = regexp.MustCompile(`^\s*"([^"]+)"`)
+)
+
+func keyFuncInsertString(app *Application) error {
+	str, err := getlineOr(app.out, "insert>", "0x00", func() bool { return app.buffer.Fetch() == nil })
+	if err != nil {
+		return err
+	}
+	var buffer bytes.Buffer
+	for len(str) > 0 {
+		if m := rxUnicodeCodePoint.FindStringSubmatch(str); m != nil {
+			str = str[len(m[0]):]
+			theRune, err := strconv.ParseUint(m[1], 16, 32)
+			if err != nil {
+				app.message = err.Error()
+				return nil
+			}
+			buffer.WriteRune(rune(theRune))
+		} else if m := rxByte.FindStringSubmatch(str); m != nil {
+			str = str[len(m[0]):]
+			theByte, err := strconv.ParseUint(m[1], 16, 16)
+			if err != nil {
+				app.message = err.Error()
+				return nil
+			}
+			buffer.WriteByte(byte(theByte))
+		} else if m := rxString.FindStringSubmatch(str); m != nil {
+			str = str[len(m[0]):]
+			buffer.WriteString(m[1])
+		} else {
+			app.message = fmt.Sprintf("`%s` are ignored", str)
+			break
+		}
+	}
+	insertArea := app.cursor.MakeSpace(buffer.Len())
+	copy(insertArea, buffer.Bytes())
+	return nil
+}
+
 var jumpTable = map[string]func(this *Application) error{
+	"I":         keyFuncInsertString,
 	_KEY_ALT_A:  keyFuncDbcsMode,
 	_KEY_ALT_U:  keyFuncUtf8Mode,
 	_KEY_ALT_L:  keyFuncUtf16LeMode,

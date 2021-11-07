@@ -127,6 +127,22 @@ func (p *Pointer) Append(value byte) {
 	p.element.Value = _Block(block)
 }
 
+func (p *Pointer) MakeSpace(size int) []byte {
+	block := p.element.Value.(_Block)
+	if len(block) > size {
+		block = append(block, block[len(block)-size:]...)
+	} else {
+		for i := 0; i < size; i++ {
+			block = append(block, 0)
+		}
+	}
+	copy(block[p.offset+size:], block[p.offset:])
+
+	p.element.Value = block
+	p.buffer.allsize += int64(size)
+	return block[p.offset : p.offset+size]
+}
+
 const (
 	RemoveSuccess = iota
 	RemoveAll
