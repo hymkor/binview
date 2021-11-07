@@ -59,9 +59,13 @@ Key-binding
 * &amp;
     * move the cursor to the address input
 * ALT-U
-    * Change the encoding on the sidearea to UTF8 (default)
+    * Change the character encoding to UTF8 (default)
 * ALT-A
-    * Change the encoding on the sidearea to the current codepage (Windows-Only)
+    * Change the character encoding to ANSI, the current codepage (Windows-Only)
+* ALT-L (implement in the future)
+    * Change the character encoding to UTF16LE
+* ALT-B (implement in the future)
+    * Change the character encoding to UTF16BE
 
 Release Note
 ============

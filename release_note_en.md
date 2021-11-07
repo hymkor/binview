@@ -1,6 +1,9 @@
 Release notes
 =============
 
+- ALT-L: Change the character encoding to UTF16LE
+- ALT-B: Change the character encoding to UTF16BE
+
 0.4.1
 -----
 on Oct 15,2021
