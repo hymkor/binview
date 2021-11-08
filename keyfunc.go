@@ -285,6 +285,7 @@ func keyFuncUtf16BeMode(app *Application) error {
 var (
 	rxUnicodeCodePoint = regexp.MustCompile(`^\s*[uU]\+([0-9A-Fa-f]+)`)
 	rxByte             = regexp.MustCompile(`^\s*0x([0-9A-Fa-f]+)`)
+	rxDigit            = regexp.MustCompile(`^\s*([0-9]+)`)
 	rxString           = regexp.MustCompile(`^\s*[uU]?"([^"]+)"`)
 )
 
@@ -332,6 +333,13 @@ func readData(app *Application, prompt string) ([]byte, error) {
 				return nil, err
 			}
 			buffer.WriteByte(byte(theByte))
+		} else if m := rxDigit.FindStringSubmatch(str); m != nil {
+			str = str[len(m[0]):]
+			value, err := strconv.ParseUint(m[1], 10, 16)
+			if err != nil {
+				return nil, err
+			}
+			buffer.WriteByte(byte(value))
 		} else if m := rxString.FindStringSubmatch(str); m != nil {
 			str = str[len(m[0]):]
 			buffer.WriteString(m[1])
