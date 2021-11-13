@@ -62,9 +62,9 @@ Key-binding
     * Change the character encoding to UTF8 (default)
 * ALT-A
     * Change the character encoding to ANSI, the current codepage (Windows-Only)
-* ALT-L (implement in the future)
+* ALT-L
     * Change the character encoding to UTF16LE
-* ALT-B (implement in the future)
+* ALT-B
     * Change the character encoding to UTF16BE
 
 Release Note
