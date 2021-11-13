@@ -352,8 +352,8 @@ func readData(app *Application, prompt string) ([]byte, error) {
 }
 
 var jumpTable = map[string]func(this *Application) error{
-	"I":         keyFuncInsertData,
-	"A":         keyFuncAppendData,
+	"i":         keyFuncInsertData,
+	"a":         keyFuncAppendData,
 	_KEY_ALT_A:  keyFuncDbcsMode,
 	_KEY_ALT_U:  keyFuncUtf8Mode,
 	_KEY_ALT_L:  keyFuncUtf16LeMode,
@@ -384,12 +384,12 @@ var jumpTable = map[string]func(this *Application) error{
 	">":         keyFuncGoEndOfFile,
 	"G":         keyFuncGoEndOfFile,
 	"p":         keyFuncPasteAfter,
-	"a":         keyFuncAddByte,
 	"P":         keyFuncPasteBefore,
-	"i":         keyFuncInsertByte,
 	"x":         keyFuncRemoveByte,
 	_KEY_DEL:    keyFuncRemoveByte,
 	"w":         keyFuncWriteFile,
 	"r":         keyFuncReplaceByte,
 	_KEY_CTRL_L: keyFuncRepaint,
+	// "a":keyFuncAddByte,
+	// "i":keyFuncInsertByte,
 }
