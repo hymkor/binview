@@ -45,12 +45,8 @@ Key-binding
 * r
     * replace one byte
 * i
-    * insert '\0' on the cursor
-* I (implement in the future)
     * insert data (for example: `0xFF`,`U+0000`,`"utf8string"`)
 * a
-    * append '\0' at the rightside of the cursor
-* A (implement in the future)
     * append data (for example: `0xFF`,`U+0000`,`"utf8string"`)
 * x , DEL
     * delete and yank one byte on the cursor
