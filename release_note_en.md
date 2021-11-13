@@ -1,6 +1,10 @@
 Release notes
 =============
 
+0.5.0
+-----
+on Nov 13,2021
+
 - ALT-L: Change the character encoding to UTF16LE
 - ALT-B: Change the character encoding to UTF16BE
 - Show some unicode's name(ByteOrderMark,ZeroWidthjoin) on the status line
