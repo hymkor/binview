@@ -45,9 +45,9 @@ Key-binding
 * r
     * replace one byte
 * i
-    * insert data (for example: `0xFF`,`U+0000`,`"utf8string"`)
+    * insert data (for example: `0xFF`,`U+0000`,`"string"`)
 * a
-    * append data (for example: `0xFF`,`U+0000`,`"utf8string"`)
+    * append data (for example: `0xFF`,`U+0000`,`"string"`)
 * x , DEL
     * delete and yank one byte on the cursor
 * p

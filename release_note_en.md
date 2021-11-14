@@ -1,6 +1,9 @@
 Release notes
 =============
 
+- `i`/`a`: `"string"` or `U+nnnn`: insert with the current encoding
+- Detect the encoding if data starts with U+FEFF
+
 0.5.0
 -----
 on Nov 13,2021
