@@ -1,7 +1,10 @@
 package encoding
 
 import (
+	"unicode/utf16"
 	"unicode/utf8"
+
+	"github.com/nyaosorg/go-windows-mbcs"
 )
 
 type Pointer interface {
@@ -16,6 +19,7 @@ type Encoding interface {
 	Decode([]byte) (rune, int)
 	RuneOver(Pointer) (rune, int, int)
 	ModeString() string
+	EncodeFromString(string) ([]byte, error)
 }
 
 type UTF8Encoding struct{}
@@ -30,6 +34,10 @@ func (UTF8Encoding) Count(b byte, _ int64) int {
 	} else {
 		return 1
 	}
+}
+
+func (UTF8Encoding) EncodeFromString(s string) ([]byte, error) {
+	return []byte(s), nil
 }
 
 func (UTF8Encoding) Decode(data []byte) (rune, int) {
@@ -68,6 +76,10 @@ func (DBCSEncoding) Count(value byte, _ int64) int {
 	} else {
 		return 1
 	}
+}
+
+func (DBCSEncoding) EncodeFromString(s string) ([]byte, error) {
+	return mbcs.UtoA(s, mbcs.ACP)
 }
 
 func (DBCSEncoding) Decode(data []byte) (rune, int) {
@@ -121,6 +133,18 @@ func (this _UTF16) Decode(data []byte) (rune, int) {
 	} else {
 		return utf8.RuneError, 1
 	}
+}
+
+func (this _UTF16) EncodeFromString(s string) ([]byte, error) {
+	bytes := make([]byte, 0, len(s)*2)
+	for _, utf16data := range utf16.Encode([]rune(s)) {
+		if this.isLittleEndian {
+			bytes = append(bytes, byte(utf16data), byte(utf16data>>8))
+		} else {
+			bytes = append(bytes, byte(utf16data>>8), byte(utf16data))
+		}
+	}
+	return bytes, nil
 }
 
 func (this _UTF16) RuneOver(cursor Pointer) (rune, int, int) {

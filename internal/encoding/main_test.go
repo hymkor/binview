@@ -6,7 +6,8 @@ import (
 
 var _ Encoding = UTF8Encoding{}
 var _ Encoding = DBCSEncoding{}
-var _ Encoding = UTF16LE{}
+var _ Encoding = UTF16LE()
+var _ Encoding = UTF16BE()
 
 func TestIsDBCSLeadByte(t *testing.T) {
 	if !IsDBCSLeadByte(0x83) { // Japanese katakana SO
