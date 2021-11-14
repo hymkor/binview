@@ -325,7 +325,9 @@ func readData(app *Application, prompt string) ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			buffer.WriteRune(rune(theRune))
+			if bin, err := app.encoding.EncodeFromString(string(theRune)); err == nil {
+				buffer.Write(bin)
+			}
 		} else if m := rxByte.FindStringSubmatch(str); m != nil {
 			str = str[len(m[0]):]
 			theByte, err := strconv.ParseUint(m[1], 16, 16)
