@@ -342,7 +342,9 @@ func readData(app *Application, prompt string) ([]byte, error) {
 			buffer.WriteByte(byte(value))
 		} else if m := rxString.FindStringSubmatch(str); m != nil {
 			str = str[len(m[0]):]
-			buffer.WriteString(m[1])
+			if bin, err := app.encoding.EncodeFromString(m[1]); err == nil {
+				buffer.Write(bin)
+			}
 		} else {
 			app.message = fmt.Sprintf("`%s` are ignored", str)
 			break
