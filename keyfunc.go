@@ -112,13 +112,6 @@ func keyFuncPasteAfter(this *Application) error {
 	return nil
 }
 
-// keyFuncAddByte inserts the zero after the cursor.
-func keyFuncAddByte(this *Application) error {
-	this.cursor.Append(0)
-	this.dirty = true
-	return nil
-}
-
 // keyFuncPasteBefore inserts the top of the clipboard at the cursor.
 func keyFuncPasteBefore(this *Application) error {
 	if this.clipBoard.Len() <= 0 {
@@ -126,13 +119,6 @@ func keyFuncPasteBefore(this *Application) error {
 	}
 	newByte := this.clipBoard.Pop()
 	this.cursor.Insert(newByte)
-	this.dirty = true
-	return nil
-}
-
-// keyFuncInsertByte inserts the zero where cursor exists.
-func keyFuncInsertByte(this *Application) error {
-	this.cursor.Insert(0)
 	this.dirty = true
 	return nil
 }
@@ -356,6 +342,4 @@ var jumpTable = map[string]func(this *Application) error{
 	"w":         keyFuncWriteFile,
 	"r":         keyFuncReplaceByte,
 	_KEY_CTRL_L: keyFuncRepaint,
-	// "a":keyFuncAddByte,
-	// "i":keyFuncInsertByte,
 }
