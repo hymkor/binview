@@ -1,11 +1,9 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"os"
-	"regexp"
 	"strconv"
 
 	"github.com/nyaosorg/go-readline-ny"
@@ -282,77 +280,41 @@ func keyFuncUtf16BeMode(app *Application) error {
 	return nil
 }
 
-var (
-	rxUnicodeCodePoint = regexp.MustCompile(`^\s*[uU]\+([0-9A-Fa-f]+)`)
-	rxByte             = regexp.MustCompile(`^\s*0x([0-9A-Fa-f]+)`)
-	rxDigit            = regexp.MustCompile(`^\s*([0-9]+)`)
-	rxString           = regexp.MustCompile(`^\s*[uU]?"([^"]+)"`)
-)
+var dataHistory = simplehistory.New()
+
+func readData(app *Application, prompt string) (string, error) {
+	str, err := getlineOr(app.out, prompt, "0x00", dataHistory, func() bool { return app.buffer.Fetch() == nil })
+	if err != nil {
+		return "", err
+	}
+	dataHistory.Add(str)
+	return str, err
+}
 
 func keyFuncInsertData(app *Application) error {
-	data, err := readData(app, "insert>")
+	str, err := readData(app, "insert>")
+	if err != nil {
+		app.message = err.Error()
+		return nil
+	}
+	err = app.InsertData(str)
 	if err != nil {
 		app.message = err.Error()
 	}
-	insertArea := app.cursor.MakeSpace(len(data))
-	copy(insertArea, data)
 	return nil
 }
 
 func keyFuncAppendData(app *Application) error {
-	data, err := readData(app, "append>")
+	str, err := readData(app, "append>")
+	if err != nil {
+		app.message = err.Error()
+		return nil
+	}
+	err = app.AppendData(str)
 	if err != nil {
 		app.message = err.Error()
 	}
-	insertArea := app.cursor.MakeSpaceAfter(len(data))
-	copy(insertArea, data)
 	return nil
-}
-
-var dataHistory = simplehistory.New()
-
-func readData(app *Application, prompt string) ([]byte, error) {
-	str, err := getlineOr(app.out, prompt, "0x00", dataHistory, func() bool { return app.buffer.Fetch() == nil })
-	if err != nil {
-		return nil, err
-	}
-	dataHistory.Add(str)
-	var buffer bytes.Buffer
-	for len(str) > 0 {
-		if m := rxUnicodeCodePoint.FindStringSubmatch(str); m != nil {
-			str = str[len(m[0]):]
-			theRune, err := strconv.ParseUint(m[1], 16, 32)
-			if err != nil {
-				return nil, err
-			}
-			if bin, err := app.encoding.EncodeFromString(string(theRune)); err == nil {
-				buffer.Write(bin)
-			}
-		} else if m := rxByte.FindStringSubmatch(str); m != nil {
-			str = str[len(m[0]):]
-			theByte, err := strconv.ParseUint(m[1], 16, 16)
-			if err != nil {
-				return nil, err
-			}
-			buffer.WriteByte(byte(theByte))
-		} else if m := rxDigit.FindStringSubmatch(str); m != nil {
-			str = str[len(m[0]):]
-			value, err := strconv.ParseUint(m[1], 10, 16)
-			if err != nil {
-				return nil, err
-			}
-			buffer.WriteByte(byte(value))
-		} else if m := rxString.FindStringSubmatch(str); m != nil {
-			str = str[len(m[0]):]
-			if bin, err := app.encoding.EncodeFromString(m[1]); err == nil {
-				buffer.Write(bin)
-			}
-		} else {
-			app.message = fmt.Sprintf("`%s` are ignored", str)
-			break
-		}
-	}
-	return buffer.Bytes(), nil
 }
 
 var jumpTable = map[string]func(this *Application) error{
