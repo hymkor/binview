@@ -141,13 +141,13 @@ func (p *Pointer) makeSpace(size int) _Block {
 	return block
 }
 
-func (p *Pointer) MakeSpace(size int) []byte {
+func (p *Pointer) InsertSpace(size int) []byte {
 	block := p.makeSpace(size)
 	copy(block[p.offset+size:], block[p.offset:])
 	return block[p.offset : p.offset+size]
 }
 
-func (p Pointer) MakeSpaceAfter(size int) []byte {
+func (p Pointer) AppendSpace(size int) []byte {
 	block := p.makeSpace(size)
 	copy(block[p.offset+size+1:], block[p.offset+1:])
 	return block[p.offset+1 : p.offset+size+1]

@@ -266,37 +266,37 @@ func keyFuncUtf16BeMode(app *Application) error {
 	return nil
 }
 
-var dataHistory = simplehistory.New()
+var expHistory = simplehistory.New()
 
-func readData(app *Application, prompt string) (string, error) {
-	str, err := getlineOr(app.out, prompt, "0x00", dataHistory, func() bool { return app.buffer.Fetch() == nil })
+func readExpression(app *Application, prompt string) (string, error) {
+	exp, err := getlineOr(app.out, prompt, "0x00", expHistory, func() bool { return app.buffer.Fetch() == nil })
 	if err != nil {
 		return "", err
 	}
-	dataHistory.Add(str)
-	return str, err
+	expHistory.Add(exp)
+	return exp, err
 }
 
-func keyFuncInsertData(app *Application) error {
-	str, err := readData(app, "insert>")
+func keyFuncInsertExp(app *Application) error {
+	exp, err := readExpression(app, "insert>")
 	if err != nil {
 		app.message = err.Error()
 		return nil
 	}
-	err = app.InsertData(str)
+	err = app.InsertExp(exp)
 	if err != nil {
 		app.message = err.Error()
 	}
 	return nil
 }
 
-func keyFuncAppendData(app *Application) error {
-	str, err := readData(app, "append>")
+func keyFuncAppendExp(app *Application) error {
+	exp, err := readExpression(app, "append>")
 	if err != nil {
 		app.message = err.Error()
 		return nil
 	}
-	err = app.AppendData(str)
+	err = app.AppendExp(exp)
 	if err != nil {
 		app.message = err.Error()
 	}
@@ -304,8 +304,8 @@ func keyFuncAppendData(app *Application) error {
 }
 
 var jumpTable = map[string]func(this *Application) error{
-	"i":         keyFuncInsertData,
-	"a":         keyFuncAppendData,
+	"i":         keyFuncInsertExp,
+	"a":         keyFuncAppendExp,
 	_KEY_ALT_A:  keyFuncDbcsMode,
 	_KEY_ALT_U:  keyFuncUtf8Mode,
 	_KEY_ALT_L:  keyFuncUtf16LeMode,

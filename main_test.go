@@ -8,15 +8,15 @@ import (
 	. "github.com/zetamatta/binview/internal/large"
 )
 
-func _insert(data string)(func(*Application) error){
+func _insert(exp string) func(*Application) error {
 	return func(app *Application) error {
-		return app.InsertData(data)
+		return app.InsertExp(exp)
 	}
 }
 
-func _append(data string)(func(*Application) error){
+func _append(exp string) func(*Application) error {
 	return func(app *Application) error {
-		return app.AppendData(data)
+		return app.AppendExp(exp)
 	}
 }
 

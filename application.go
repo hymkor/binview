@@ -16,11 +16,11 @@ var (
 	rxString           = regexp.MustCompile(`^\s*[uU]?"([^"]+)"`)
 )
 
-func parseInsertData(str string, enc encoding.Encoding) ([]byte, error) {
+func evalExpression(exp string, enc encoding.Encoding) ([]byte, error) {
 	bytes := make([]byte, 0)
-	for len(str) > 0 {
-		if m := rxUnicodeCodePoint.FindStringSubmatch(str); m != nil {
-			str = str[len(m[0]):]
+	for len(exp) > 0 {
+		if m := rxUnicodeCodePoint.FindStringSubmatch(exp); m != nil {
+			exp = exp[len(m[0]):]
 			theRune, err := strconv.ParseUint(m[1], 16, 32)
 			if err != nil {
 				return nil, err
@@ -28,56 +28,56 @@ func parseInsertData(str string, enc encoding.Encoding) ([]byte, error) {
 			if bin, err := enc.EncodeFromString(string(rune(theRune))); err == nil {
 				bytes = append(bytes, bin...)
 			}
-		} else if m := rxByte.FindStringSubmatch(str); m != nil {
-			str = str[len(m[0]):]
+		} else if m := rxByte.FindStringSubmatch(exp); m != nil {
+			exp = exp[len(m[0]):]
 			theByte, err := strconv.ParseUint(m[1], 16, 16)
 			if err != nil {
 				return nil, err
 			}
 			bytes = append(bytes, byte(theByte))
-		} else if m := rxDigit.FindStringSubmatch(str); m != nil {
-			str = str[len(m[0]):]
+		} else if m := rxDigit.FindStringSubmatch(exp); m != nil {
+			exp = exp[len(m[0]):]
 			value, err := strconv.ParseUint(m[1], 10, 16)
 			if err != nil {
 				return nil, err
 			}
 			bytes = append(bytes, byte(value))
-		} else if m := rxString.FindStringSubmatch(str); m != nil {
-			str = str[len(m[0]):]
+		} else if m := rxString.FindStringSubmatch(exp); m != nil {
+			exp = exp[len(m[0]):]
 			if bin, err := enc.EncodeFromString(m[1]); err == nil {
 				bytes = append(bytes, bin...)
 			}
 		} else {
-			return bytes, fmt.Errorf("`%s` are ignored", str)
+			return bytes, fmt.Errorf("`%s` are ignored", exp)
 		}
 	}
 	return bytes, nil
 }
 
-func insertData(str string, enc encoding.Encoding, ptr *large.Pointer) error {
-	data, err := parseInsertData(str, enc)
+func insertExp(exp string, enc encoding.Encoding, ptr *large.Pointer) error {
+	bytes, err := evalExpression(exp, enc)
 	if err != nil {
 		return err
 	}
-	insertArea := ptr.MakeSpace(len(data))
-	copy(insertArea, data)
+	space := ptr.InsertSpace(len(bytes))
+	copy(space, bytes)
 	return nil
 }
 
-func (app *Application) InsertData(str string) error {
-	return insertData(str, app.encoding, app.cursor)
+func (app *Application) InsertExp(exp string) error {
+	return insertExp(exp, app.encoding, app.cursor)
 }
 
-func appendData(str string, enc encoding.Encoding, ptr *large.Pointer) error {
-	data, err := parseInsertData(str, enc)
+func appendExp(exp string, enc encoding.Encoding, ptr *large.Pointer) error {
+	bytes, err := evalExpression(exp, enc)
 	if err != nil {
 		return err
 	}
-	insertArea := ptr.MakeSpaceAfter(len(data))
-	copy(insertArea, data)
+	space := ptr.AppendSpace(len(bytes))
+	copy(space, bytes)
 	return nil
 }
 
-func (app *Application) AppendData(str string) error {
-	return appendData(str, app.encoding, app.cursor)
+func (app *Application) AppendExp(exp string) error {
+	return appendExp(exp, app.encoding, app.cursor)
 }
