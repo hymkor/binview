@@ -304,9 +304,18 @@ func keyFuncAppendExp(app *Application) error {
 }
 
 func keyFuncUndo(app *Application) error {
+	if len(app.undoFuncs) <= 0 {
+		return nil
+	}
+	addressSave := app.cursor.Address()
+
 	undoFunc1 := app.undoFuncs[len(app.undoFuncs)-1]
 	app.undoFuncs = app.undoFuncs[:len(app.undoFuncs)-1]
 	undoFunc1(app)
+
+	app.cursor = large.NewPointer(app.buffer)
+	app.window = app.cursor.Clone()
+	app.cursor.Skip(addressSave)
 	return nil
 }
 

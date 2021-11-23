@@ -54,18 +54,28 @@ func evalExpression(exp string, enc encoding.Encoding) ([]byte, error) {
 	return bytes, nil
 }
 
-func insertExp(exp string, enc encoding.Encoding, ptr *large.Pointer) error {
+func insertExp(exp string, enc encoding.Encoding, ptr *large.Pointer) (int, error) {
 	bytes, err := evalExpression(exp, enc)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	space := ptr.InsertSpace(len(bytes))
 	copy(space, bytes)
-	return nil
+	return len(bytes), nil
 }
 
 func (app *Application) InsertExp(exp string) error {
-	return insertExp(exp, app.encoding, app.cursor)
+	undoAddress := app.cursor.Address()
+	size, err := insertExp(exp, app.encoding, app.cursor)
+	if err == nil {
+		undo := func(app *Application) {
+			p := large.NewPointer(app.buffer)
+			p.Skip(undoAddress)
+			p.RemoveSpace(size)
+		}
+		app.undoFuncs = append(app.undoFuncs, undo)
+	}
+	return err
 }
 
 func appendExp(exp string, enc encoding.Encoding, ptr *large.Pointer) error {
