@@ -38,6 +38,14 @@ func NewPointer(b *Buffer) *Pointer {
 	}
 }
 
+func NewPointerAt(at int64, b *Buffer) *Pointer {
+	p := NewPointer(b)
+	if p != nil {
+		p.Skip(at)
+	}
+	return p
+}
+
 func (p *Pointer) Value() byte {
 	return p.element.Value.(_Block)[p.offset]
 }

@@ -70,8 +70,7 @@ func (app *Application) InsertExp(exp string) error {
 	size, err := insertExp(exp, app.encoding, app.cursor)
 	if err == nil {
 		undo := func(app *Application) {
-			p := large.NewPointer(app.buffer)
-			p.Skip(undoAddress)
+			p := large.NewPointerAt(undoAddress, app.buffer)
 			p.RemoveSpace(size)
 			app.dirty = orgDirty
 		}
@@ -97,8 +96,7 @@ func (app *Application) AppendExp(exp string) error {
 	orgDirty := app.dirty
 	if err == nil {
 		undo := func(app *Application) {
-			p := large.NewPointer(app.buffer)
-			p.Skip(undoAddress)
+			p := large.NewPointerAt(undoAddress, app.buffer)
 			p.RemoveSpace(size)
 			app.dirty = orgDirty
 		}

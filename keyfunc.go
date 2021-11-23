@@ -110,8 +110,7 @@ func keyFuncPasteAfter(this *Application) error {
 	orgAddress := this.cursor.Address() + 1
 	orgDirty := this.dirty
 	undo := func(app *Application) {
-		p := large.NewPointer(app.buffer)
-		p.Skip(orgAddress)
+		p := large.NewPointerAt(orgAddress, app.buffer)
 		p.Remove()
 		this.dirty = orgDirty
 	}
@@ -130,8 +129,7 @@ func keyFuncPasteBefore(this *Application) error {
 	orgAddress := this.cursor.Address()
 	orgDirty := this.dirty
 	undo := func(app *Application) {
-		p := large.NewPointer(app.buffer)
-		p.Skip(orgAddress)
+		p := large.NewPointerAt(orgAddress, app.buffer)
 		p.Remove()
 		this.dirty = orgDirty
 	}
@@ -147,8 +145,7 @@ func keyFuncRemoveByte(this *Application) error {
 	address := this.cursor.Address()
 	orgDirty := this.dirty
 	undo := func(app *Application) {
-		p := large.NewPointer(app.buffer)
-		p.Skip(address)
+		p := large.NewPointerAt(address, app.buffer)
 		p.Insert(orgValue)
 		app.dirty = orgDirty
 	}
@@ -235,8 +232,7 @@ func keyFuncReplaceByte(this *Application) error {
 		orgValue := this.cursor.Value()
 		orgDirty := this.dirty
 		undo := func(app *Application) {
-			p := large.NewPointer(app.buffer)
-			p.Skip(address)
+			p := large.NewPointerAt(address, app.buffer)
 			p.SetValue(orgValue)
 			app.dirty = orgDirty
 		}
