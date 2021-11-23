@@ -107,7 +107,16 @@ func keyFuncPasteAfter(this *Application) error {
 		return nil
 	}
 	newByte := this.clipBoard.Pop()
+	orgAddress := this.cursor.Address() + 1
+	orgDirty := this.dirty
+	undo := func(app *Application) {
+		p := large.NewPointer(app.buffer)
+		p.Skip(orgAddress)
+		p.Remove()
+		this.dirty = orgDirty
+	}
 	this.cursor.Append(newByte)
+	this.undoFuncs = append(this.undoFuncs, undo)
 	this.dirty = true
 	return nil
 }
@@ -118,7 +127,16 @@ func keyFuncPasteBefore(this *Application) error {
 		return nil
 	}
 	newByte := this.clipBoard.Pop()
+	orgAddress := this.cursor.Address()
+	orgDirty := this.dirty
+	undo := func(app *Application) {
+		p := large.NewPointer(app.buffer)
+		p.Skip(orgAddress)
+		p.Remove()
+		this.dirty = orgDirty
+	}
 	this.cursor.Insert(newByte)
+	this.undoFuncs = append(this.undoFuncs, undo)
 	this.dirty = true
 	return nil
 }
