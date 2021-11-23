@@ -125,6 +125,14 @@ func keyFuncPasteBefore(this *Application) error {
 
 // keyFuncRemoveByte removes the byte where cursor exists.
 func keyFuncRemoveByte(this *Application) error {
+	orgValue := this.cursor.Value()
+	address := this.cursor.Address()
+	undo := func(app *Application) {
+		p := large.NewPointer(app.buffer)
+		p.Skip(address)
+		p.Insert(orgValue)
+	}
+	this.undoFuncs = append(this.undoFuncs, undo)
 	this.dirty = true
 	this.clipBoard.Push(this.cursor.Value())
 	switch this.cursor.Remove() {
