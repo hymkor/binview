@@ -142,3 +142,16 @@ func TestEndOfLineOnShortData(t *testing.T) {
 		keyFuncGoEndOfLine,
 		_insert("0x00"))
 }
+
+func TestInsertAndUndo(t *testing.T) {
+	try(t, "012345", "012345",
+		_insert(`"abcdef"`),
+		keyFuncUndo)
+}
+
+func TestAppendAndUndo(t *testing.T) {
+	try(t, "012345", "012345",
+		keyFuncGoEndOfLine,
+		_append(`"abcdef"`),
+		keyFuncUndo)
+}
