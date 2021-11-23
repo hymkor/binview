@@ -303,7 +303,15 @@ func keyFuncAppendExp(app *Application) error {
 	return nil
 }
 
+func keyFuncUndo(app *Application) error {
+	undoFunc1 := app.undoFuncs[len(app.undoFuncs)-1]
+	app.undoFuncs = app.undoFuncs[:len(app.undoFuncs)-1]
+	undoFunc1(app)
+	return nil
+}
+
 var jumpTable = map[string]func(this *Application) error{
+	"u":         keyFuncUndo,
 	"i":         keyFuncInsertExp,
 	"a":         keyFuncAppendExp,
 	_KEY_ALT_A:  keyFuncDbcsMode,
