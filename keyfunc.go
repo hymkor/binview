@@ -203,6 +203,14 @@ func keyFuncReplaceByte(this *Application) error {
 		return nil
 	}
 	if n, err := strconv.ParseUint(bytes, 0, 8); err == nil {
+		address := this.cursor.Address()
+		orgValue := this.cursor.Value()
+		undo := func(app *Application) {
+			p := large.NewPointer(app.buffer)
+			p.Skip(address)
+			p.SetValue(orgValue)
+		}
+		this.undoFuncs = append(this.undoFuncs, undo)
 		this.cursor.SetValue(byte(n))
 		this.dirty = true
 		byteHistory.Add(bytes)
