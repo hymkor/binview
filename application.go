@@ -66,14 +66,17 @@ func insertExp(exp string, enc encoding.Encoding, ptr *large.Pointer) (int, erro
 
 func (app *Application) InsertExp(exp string) error {
 	undoAddress := app.cursor.Address()
+	orgDirty := app.dirty
 	size, err := insertExp(exp, app.encoding, app.cursor)
 	if err == nil {
 		undo := func(app *Application) {
 			p := large.NewPointer(app.buffer)
 			p.Skip(undoAddress)
 			p.RemoveSpace(size)
+			app.dirty = orgDirty
 		}
 		app.undoFuncs = append(app.undoFuncs, undo)
+		app.dirty = true
 	}
 	return err
 }
@@ -91,13 +94,16 @@ func appendExp(exp string, enc encoding.Encoding, ptr *large.Pointer) (int, erro
 func (app *Application) AppendExp(exp string) error {
 	size, err := appendExp(exp, app.encoding, app.cursor)
 	undoAddress := app.cursor.Address() + 1
+	orgDirty := app.dirty
 	if err == nil {
 		undo := func(app *Application) {
 			p := large.NewPointer(app.buffer)
 			p.Skip(undoAddress)
 			p.RemoveSpace(size)
+			app.dirty = orgDirty
 		}
 		app.undoFuncs = append(app.undoFuncs, undo)
+		app.dirty = true
 	}
 	return err
 }

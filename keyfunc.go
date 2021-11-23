@@ -127,10 +127,12 @@ func keyFuncPasteBefore(this *Application) error {
 func keyFuncRemoveByte(this *Application) error {
 	orgValue := this.cursor.Value()
 	address := this.cursor.Address()
+	orgDirty := this.dirty
 	undo := func(app *Application) {
 		p := large.NewPointer(app.buffer)
 		p.Skip(address)
 		p.Insert(orgValue)
+		app.dirty = orgDirty
 	}
 	this.undoFuncs = append(this.undoFuncs, undo)
 	this.dirty = true
@@ -213,10 +215,12 @@ func keyFuncReplaceByte(this *Application) error {
 	if n, err := strconv.ParseUint(bytes, 0, 8); err == nil {
 		address := this.cursor.Address()
 		orgValue := this.cursor.Value()
+		orgDirty := this.dirty
 		undo := func(app *Application) {
 			p := large.NewPointer(app.buffer)
 			p.Skip(address)
 			p.SetValue(orgValue)
+			app.dirty = orgDirty
 		}
 		this.undoFuncs = append(this.undoFuncs, undo)
 		this.cursor.SetValue(byte(n))
