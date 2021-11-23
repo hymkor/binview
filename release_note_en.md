@@ -3,6 +3,7 @@ Release notes
 
 - `i`/`a`: `"string"` or `U+nnnn`: insert with the current encoding
 - Detect the encoding if data starts with U+FEFF
+- `u` : implement the undo
 
 0.5.0
 -----

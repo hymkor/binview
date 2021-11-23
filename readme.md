@@ -54,6 +54,8 @@ Key-binding
     * paste 1 byte the rightside of the cursor
 * P
     * paste 1 byte the leftside of the cursor
+* u
+    * undo
 * w
     * output to file
 * &amp;
