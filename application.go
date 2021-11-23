@@ -78,16 +78,26 @@ func (app *Application) InsertExp(exp string) error {
 	return err
 }
 
-func appendExp(exp string, enc encoding.Encoding, ptr *large.Pointer) error {
+func appendExp(exp string, enc encoding.Encoding, ptr *large.Pointer) (int, error) {
 	bytes, err := evalExpression(exp, enc)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	space := ptr.AppendSpace(len(bytes))
 	copy(space, bytes)
-	return nil
+	return len(bytes), nil
 }
 
 func (app *Application) AppendExp(exp string) error {
-	return appendExp(exp, app.encoding, app.cursor)
+	size, err := appendExp(exp, app.encoding, app.cursor)
+	undoAddress := app.cursor.Address() + 1
+	if err == nil {
+		undo := func(app *Application) {
+			p := large.NewPointer(app.buffer)
+			p.Skip(undoAddress)
+			p.RemoveSpace(size)
+		}
+		app.undoFuncs = append(app.undoFuncs, undo)
+	}
+	return err
 }
