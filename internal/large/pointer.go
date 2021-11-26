@@ -38,6 +38,14 @@ func NewPointer(b *Buffer) *Pointer {
 	}
 }
 
+func NewPointerAt(at int64, b *Buffer) *Pointer {
+	p := NewPointer(b)
+	if p != nil {
+		p.Skip(at)
+	}
+	return p
+}
+
 func (p *Pointer) Value() byte {
 	return p.element.Value.(_Block)[p.offset]
 }
@@ -141,13 +149,13 @@ func (p *Pointer) makeSpace(size int) _Block {
 	return block
 }
 
-func (p *Pointer) MakeSpace(size int) []byte {
+func (p *Pointer) InsertSpace(size int) []byte {
 	block := p.makeSpace(size)
 	copy(block[p.offset+size:], block[p.offset:])
 	return block[p.offset : p.offset+size]
 }
 
-func (p Pointer) MakeSpaceAfter(size int) []byte {
+func (p Pointer) AppendSpace(size int) []byte {
 	block := p.makeSpace(size)
 	copy(block[p.offset+size+1:], block[p.offset+1:])
 	return block[p.offset+1 : p.offset+size+1]
@@ -185,4 +193,36 @@ func (p *Pointer) Remove() int {
 		p.address--
 	}
 	return RemoveSuccess
+}
+
+func (p *Pointer) RemoveSpace(space int) {
+	block := p.element.Value.(_Block)
+
+	if space <= 0 {
+		return
+	} else if p.offset == 0 && space > len(block) {
+		tmp := p.element.Next()
+		if tmp != nil {
+			p.buffer.lines.Remove(p.element)
+			p.element = tmp
+			p.buffer.allsize -= int64(len(block))
+			p.RemoveSpace(space - len(block))
+		}
+		return
+	} else if left := len(block) - p.offset; space > left {
+		p.element.Value = _Block(block[:p.offset])
+		tmp := p.element.Next()
+		p.buffer.allsize -= int64(left)
+		if tmp != nil {
+			p.element = tmp
+			p.offset = 0
+			p.RemoveSpace(space - left)
+		} else {
+			p.offset--
+		}
+		return
+	}
+	copy(block[p.offset:], block[p.offset+space:])
+	p.element.Value = _Block(block[:len(block)-space])
+	p.buffer.allsize -= int64(space)
 }

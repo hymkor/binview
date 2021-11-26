@@ -8,6 +8,18 @@ import (
 	. "github.com/zetamatta/binview/internal/large"
 )
 
+func _insert(exp string) func(*Application) error {
+	return func(app *Application) error {
+		return app.InsertExp(exp)
+	}
+}
+
+func _append(exp string) func(*Application) error {
+	return func(app *Application) error {
+		return app.AppendExp(exp)
+	}
+}
+
 func try(
 	t *testing.T,
 	source string,
@@ -49,7 +61,7 @@ func TestKeyFuncRemoveByte(t *testing.T) {
 
 func TestKeyFuncInsertByte(t *testing.T) {
 	try(t, "1234567890", "\0001234567890",
-		keyFuncInsertByte)
+		_insert("0x00"))
 }
 
 func TestForwardAndRemove(t *testing.T) {
@@ -114,7 +126,7 @@ func TestKeyFuncBeginOfLine(t *testing.T) {
 
 func TestKeyFuncAddByte(t *testing.T) {
 	try(t, "0123456789ABCDEF", "0\000123456789ABCDEF",
-		keyFuncAddByte)
+		_append("0x00"))
 }
 
 func TestEmptyData(t *testing.T) {
@@ -128,5 +140,18 @@ func TestEmptyData(t *testing.T) {
 func TestEndOfLineOnShortData(t *testing.T) {
 	try(t, "012345", "01234\0005",
 		keyFuncGoEndOfLine,
-		keyFuncInsertByte)
+		_insert("0x00"))
+}
+
+func TestInsertAndUndo(t *testing.T) {
+	try(t, "012345", "012345",
+		_insert(`"abcdef"`),
+		keyFuncUndo)
+}
+
+func TestAppendAndUndo(t *testing.T) {
+	try(t, "012345", "012345",
+		keyFuncGoEndOfLine,
+		_append(`"abcdef"`),
+		keyFuncUndo)
 }

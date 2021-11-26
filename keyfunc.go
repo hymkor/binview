@@ -1,11 +1,9 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"os"
-	"regexp"
 	"strconv"
 
 	"github.com/nyaosorg/go-readline-ny"
@@ -109,14 +107,15 @@ func keyFuncPasteAfter(this *Application) error {
 		return nil
 	}
 	newByte := this.clipBoard.Pop()
+	orgAddress := this.cursor.Address() + 1
+	orgDirty := this.dirty
+	undo := func(app *Application) {
+		p := large.NewPointerAt(orgAddress, app.buffer)
+		p.Remove()
+		this.dirty = orgDirty
+	}
 	this.cursor.Append(newByte)
-	this.dirty = true
-	return nil
-}
-
-// keyFuncAddByte inserts the zero after the cursor.
-func keyFuncAddByte(this *Application) error {
-	this.cursor.Append(0)
+	this.undoFuncs = append(this.undoFuncs, undo)
 	this.dirty = true
 	return nil
 }
@@ -127,20 +126,30 @@ func keyFuncPasteBefore(this *Application) error {
 		return nil
 	}
 	newByte := this.clipBoard.Pop()
+	orgAddress := this.cursor.Address()
+	orgDirty := this.dirty
+	undo := func(app *Application) {
+		p := large.NewPointerAt(orgAddress, app.buffer)
+		p.Remove()
+		this.dirty = orgDirty
+	}
 	this.cursor.Insert(newByte)
-	this.dirty = true
-	return nil
-}
-
-// keyFuncInsertByte inserts the zero where cursor exists.
-func keyFuncInsertByte(this *Application) error {
-	this.cursor.Insert(0)
+	this.undoFuncs = append(this.undoFuncs, undo)
 	this.dirty = true
 	return nil
 }
 
 // keyFuncRemoveByte removes the byte where cursor exists.
 func keyFuncRemoveByte(this *Application) error {
+	orgValue := this.cursor.Value()
+	address := this.cursor.Address()
+	orgDirty := this.dirty
+	undo := func(app *Application) {
+		p := large.NewPointerAt(address, app.buffer)
+		p.Insert(orgValue)
+		app.dirty = orgDirty
+	}
+	this.undoFuncs = append(this.undoFuncs, undo)
 	this.dirty = true
 	this.clipBoard.Push(this.cursor.Value())
 	switch this.cursor.Remove() {
@@ -219,6 +228,15 @@ func keyFuncReplaceByte(this *Application) error {
 		return nil
 	}
 	if n, err := strconv.ParseUint(bytes, 0, 8); err == nil {
+		address := this.cursor.Address()
+		orgValue := this.cursor.Value()
+		orgDirty := this.dirty
+		undo := func(app *Application) {
+			p := large.NewPointerAt(address, app.buffer)
+			p.SetValue(orgValue)
+			app.dirty = orgDirty
+		}
+		this.undoFuncs = append(this.undoFuncs, undo)
 		this.cursor.SetValue(byte(n))
 		this.dirty = true
 		byteHistory.Add(bytes)
@@ -282,78 +300,63 @@ func keyFuncUtf16BeMode(app *Application) error {
 	return nil
 }
 
-var (
-	rxUnicodeCodePoint = regexp.MustCompile(`^\s*[uU]\+([0-9A-Fa-f]+)`)
-	rxByte             = regexp.MustCompile(`^\s*0x([0-9A-Fa-f]+)`)
-	rxDigit            = regexp.MustCompile(`^\s*([0-9]+)`)
-	rxString           = regexp.MustCompile(`^\s*[uU]?"([^"]+)"`)
-)
+var expHistory = simplehistory.New()
 
-func keyFuncInsertData(app *Application) error {
-	data, err := readData(app, "insert>")
+func readExpression(app *Application, prompt string) (string, error) {
+	exp, err := getlineOr(app.out, prompt, "0x00", expHistory, func() bool { return app.buffer.Fetch() == nil })
+	if err != nil {
+		return "", err
+	}
+	expHistory.Add(exp)
+	return exp, err
+}
+
+func keyFuncInsertExp(app *Application) error {
+	exp, err := readExpression(app, "insert>")
+	if err != nil {
+		app.message = err.Error()
+		return nil
+	}
+	err = app.InsertExp(exp)
 	if err != nil {
 		app.message = err.Error()
 	}
-	insertArea := app.cursor.MakeSpace(len(data))
-	copy(insertArea, data)
 	return nil
 }
 
-func keyFuncAppendData(app *Application) error {
-	data, err := readData(app, "append>")
+func keyFuncAppendExp(app *Application) error {
+	exp, err := readExpression(app, "append>")
+	if err != nil {
+		app.message = err.Error()
+		return nil
+	}
+	err = app.AppendExp(exp)
 	if err != nil {
 		app.message = err.Error()
 	}
-	insertArea := app.cursor.MakeSpaceAfter(len(data))
-	copy(insertArea, data)
 	return nil
 }
 
-var dataHistory = simplehistory.New()
+func keyFuncUndo(app *Application) error {
+	if len(app.undoFuncs) <= 0 {
+		return nil
+	}
+	addressSave := app.cursor.Address()
 
-func readData(app *Application, prompt string) ([]byte, error) {
-	str, err := getlineOr(app.out, prompt, "0x00", dataHistory, func() bool { return app.buffer.Fetch() == nil })
-	if err != nil {
-		return nil, err
-	}
-	dataHistory.Add(str)
-	var buffer bytes.Buffer
-	for len(str) > 0 {
-		if m := rxUnicodeCodePoint.FindStringSubmatch(str); m != nil {
-			str = str[len(m[0]):]
-			theRune, err := strconv.ParseUint(m[1], 16, 32)
-			if err != nil {
-				return nil, err
-			}
-			buffer.WriteRune(rune(theRune))
-		} else if m := rxByte.FindStringSubmatch(str); m != nil {
-			str = str[len(m[0]):]
-			theByte, err := strconv.ParseUint(m[1], 16, 16)
-			if err != nil {
-				return nil, err
-			}
-			buffer.WriteByte(byte(theByte))
-		} else if m := rxDigit.FindStringSubmatch(str); m != nil {
-			str = str[len(m[0]):]
-			value, err := strconv.ParseUint(m[1], 10, 16)
-			if err != nil {
-				return nil, err
-			}
-			buffer.WriteByte(byte(value))
-		} else if m := rxString.FindStringSubmatch(str); m != nil {
-			str = str[len(m[0]):]
-			buffer.WriteString(m[1])
-		} else {
-			app.message = fmt.Sprintf("`%s` are ignored", str)
-			break
-		}
-	}
-	return buffer.Bytes(), nil
+	undoFunc1 := app.undoFuncs[len(app.undoFuncs)-1]
+	app.undoFuncs = app.undoFuncs[:len(app.undoFuncs)-1]
+	undoFunc1(app)
+
+	app.cursor = large.NewPointer(app.buffer)
+	app.window = app.cursor.Clone()
+	app.cursor.Skip(addressSave)
+	return nil
 }
 
 var jumpTable = map[string]func(this *Application) error{
-	"i":         keyFuncInsertData,
-	"a":         keyFuncAppendData,
+	"u":         keyFuncUndo,
+	"i":         keyFuncInsertExp,
+	"a":         keyFuncAppendExp,
 	_KEY_ALT_A:  keyFuncDbcsMode,
 	_KEY_ALT_U:  keyFuncUtf8Mode,
 	_KEY_ALT_L:  keyFuncUtf16LeMode,
@@ -390,6 +393,4 @@ var jumpTable = map[string]func(this *Application) error{
 	"w":         keyFuncWriteFile,
 	"r":         keyFuncReplaceByte,
 	_KEY_CTRL_L: keyFuncRepaint,
-	// "a":keyFuncAddByte,
-	// "i":keyFuncInsertByte,
 }

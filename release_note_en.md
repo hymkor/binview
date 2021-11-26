@@ -1,6 +1,14 @@
 Release notes
 =============
 
+0.6.0
+------
+on Nov 26,2021
+
+- `i`/`a`: `"string"` or `U+nnnn`: insert with the current encoding
+- Detect the encoding if data starts with U+FEFF
+- `u` : implement the undo
+
 0.5.0
 -----
 on Nov 13,2021

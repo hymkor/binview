@@ -45,15 +45,17 @@ Key-binding
 * r
     * replace one byte
 * i
-    * insert data (for example: `0xFF`,`U+0000`,`"utf8string"`)
+    * insert data (for example: `0xFF`,`U+0000`,`"string"`)
 * a
-    * append data (for example: `0xFF`,`U+0000`,`"utf8string"`)
+    * append data (for example: `0xFF`,`U+0000`,`"string"`)
 * x , DEL
     * delete and yank one byte on the cursor
 * p
     * paste 1 byte the rightside of the cursor
 * P
     * paste 1 byte the leftside of the cursor
+* u
+    * undo
 * w
     * output to file
 * &amp;

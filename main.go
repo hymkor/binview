@@ -206,10 +206,26 @@ type Application struct {
 	message      string
 	cache        map[int]string
 	encoding     encoding.Encoding
+	undoFuncs    []func(app *Application)
 }
 
 func (app *Application) dataHeight() int {
 	return app.screenHeight - 1
+}
+
+func detectEncoding(p *large.Pointer) encoding.Encoding {
+	p = p.Clone()
+	byte1 := p.Value()
+	if p.Next() == nil {
+		byte2 := p.Value()
+		if byte1 == 0xFF && byte2 == 0xFE {
+			return encoding.UTF16LE()
+		}
+		if byte1 == 0xFE && byte2 == 0xFF {
+			return encoding.UTF16BE()
+		}
+	}
+	return encoding.UTF8Encoding{}
 }
 
 func NewApplication(in io.Reader, out io.Writer, defaultName string) (*Application, error) {
@@ -219,7 +235,6 @@ func NewApplication(in io.Reader, out io.Writer, defaultName string) (*Applicati
 		out:       out,
 		buffer:    large.NewBuffer(in),
 		clipBoard: NewClip(),
-		encoding:  encoding.UTF8Encoding{},
 	}
 	this.window = large.NewPointer(this.buffer)
 	if this.window == nil {
@@ -229,6 +244,8 @@ func NewApplication(in io.Reader, out io.Writer, defaultName string) (*Applicati
 	if this.cursor == nil {
 		return nil, io.EOF
 	}
+	this.encoding = detectEncoding(this.cursor)
+
 	var err error
 	this.tty1, err = tty.Open()
 	if err != nil {
