@@ -111,7 +111,7 @@ func makeAsciiPart(enc encoding.Encoding, pointer *large.Pointer, cursorAddress 
 			runeBuffer[j] = pointer.Value()
 			readCount++
 		}
-		c, length = enc.Decode(runeBuffer[:readCount])
+		c = enc.Decode(runeBuffer[:readCount])
 
 		if c == utf8.RuneError {
 			c = '.'

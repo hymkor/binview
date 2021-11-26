@@ -16,7 +16,7 @@ type Pointer interface {
 
 type Encoding interface {
 	Count(value byte, at int64) int
-	Decode([]byte) (rune, int)
+	Decode([]byte) rune
 	RuneOver(Pointer) (rune, int, int)
 	ModeString() string
 	EncodeFromString(string) ([]byte, error)
@@ -40,8 +40,9 @@ func (UTF8Encoding) EncodeFromString(s string) ([]byte, error) {
 	return []byte(s), nil
 }
 
-func (UTF8Encoding) Decode(data []byte) (rune, int) {
-	return utf8.DecodeRune(data)
+func (UTF8Encoding) Decode(data []byte) rune {
+	r, _ := utf8.DecodeRune(data)
+	return r
 }
 
 func (enc UTF8Encoding) RuneOver(cursor Pointer) (rune, int, int) {
@@ -82,16 +83,12 @@ func (DBCSEncoding) EncodeFromString(s string) ([]byte, error) {
 	return mbcs.UtoA(s, mbcs.ACP)
 }
 
-func (DBCSEncoding) Decode(data []byte) (rune, int) {
+func (DBCSEncoding) Decode(data []byte) rune {
 	utf16s, err := ToWideChar(data...)
-	if err != nil {
-		return utf8.RuneError, 1
+	if err != nil || len(utf16s) <= 0 {
+		return utf8.RuneError
 	}
-	c := rune(utf16s[0])
-	if c > 0xFF {
-		return c, 2
-	}
-	return c, 1
+	return rune(utf16s[0])
 }
 
 func (DBCSEncoding) RuneOver(cursor Pointer) (rune, int, int) {
@@ -130,12 +127,11 @@ func (_UTF16) Count(_ byte, address int64) int {
 	}
 }
 
-func (this _UTF16) Decode(data []byte) (rune, int) {
-	if len(data) == 2 {
-		return this.utf16ToRune(rune(data[0]), rune(data[1])), 2
-	} else {
-		return utf8.RuneError, 1
+func (this _UTF16) Decode(data []byte) rune {
+	if len(data) != 2 {
+		return utf8.RuneError
 	}
+	return this.utf16ToRune(rune(data[0]), rune(data[1]))
 }
 
 func (this _UTF16) EncodeFromString(s string) ([]byte, error) {
