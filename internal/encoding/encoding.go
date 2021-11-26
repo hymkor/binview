@@ -86,9 +86,12 @@ func (DBCSEncoding) Decode(data []byte) (rune, int) {
 	utf16s, err := ToWideChar(data...)
 	if err != nil {
 		return utf8.RuneError, 1
-	} else {
-		return rune(utf16s[0]), 2
 	}
+	c := rune(utf16s[0])
+	if c > 0xFF {
+		return c, 2
+	}
+	return c, 1
 }
 
 func (DBCSEncoding) RuneOver(cursor Pointer) (rune, int, int) {
