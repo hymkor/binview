@@ -1,6 +1,8 @@
 Release notes
 =============
 
+- Fix: on ANSI encoding, the byte-length of ANK was counted as 2-bytes
+
 0.6.0
 ------
 on Nov 26,2021
