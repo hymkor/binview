@@ -182,7 +182,7 @@ func writeFile(buffer *large.Buffer, tty1 Tty, out io.Writer, fname string) (str
 	if err != nil {
 		return "", err
 	}
-	fd, err := os.OpenFile(fname, os.O_EXCL|os.O_CREATE, 0666)
+	fd, err := os.OpenFile(fname, os.O_WRONLY|os.O_EXCL|os.O_CREATE, 0666)
 	if os.IsExist(err) {
 		if _, ok := overWritten[fname]; ok {
 			os.Remove(fname)
@@ -195,7 +195,7 @@ func writeFile(buffer *large.Buffer, tty1 Tty, out io.Writer, fname string) (str
 			os.Rename(fname, backupName)
 			overWritten[fname] = struct{}{}
 		}
-		fd, err = os.OpenFile(fname, os.O_EXCL|os.O_CREATE, 0666)
+		fd, err = os.OpenFile(fname, os.O_WRONLY|os.O_EXCL|os.O_CREATE, 0666)
 	}
 	if err != nil {
 		return "", err
