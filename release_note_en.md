@@ -1,6 +1,10 @@
 Release notes
 =============
 
+0.6.2
+------
+on Nov 30,2021
+
 - Fix: on Linux, `w`: output was zero bytes.
 
 0.6.1
