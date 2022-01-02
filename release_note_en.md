@@ -1,6 +1,10 @@
 Release notes
 =============
 
+0.6.3
+-----
+on Jan 2,2022
+
 - (#3) Do not display `U+0080`-`U+009F`, the Unicode Characters in the 'Other, Control' Category
 
 0.6.2
