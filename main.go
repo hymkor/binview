@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/mattn/go-colorable"
@@ -130,9 +131,7 @@ func makeAsciiPart(enc encoding.Encoding, pointer *large.Pointer, cursorAddress 
 
 		if _c, ok := dontview[c]; ok {
 			c = _c
-		} else if c < ' ' || ('\u007f' <= c && c <= '\u009f') {
-			// Do not show the Unicode Characters in the 'Other, Control' Category
-			//   https://www.fileformat.info/info/unicode/category/Cc/list.htm
+		} else if unicode.IsControl(c) {
 			c = '.'
 		}
 
