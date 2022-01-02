@@ -1,6 +1,8 @@
 Release notes
 =============
 
+- (#3) Do not display `U+0080`-`U+009F`, the Unicode Characters in the 'Other, Control' Category
+
 0.6.2
 ------
 on Nov 30,2021
