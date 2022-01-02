@@ -95,6 +95,15 @@ func makeHexPart(pointer *large.Pointer, cursorAddress int64, out *strings.Build
 	return true
 }
 
+var dontview = map[rune]rune{
+	'\u000a': _HALFWIDTH_DOWNWARDS_ARROW,
+	'\u000d': _HALFWIDTH_LEFTWARDS_ARROW,
+	'\t':     _RIGHTWARDS_ARROW_TO_BAR,
+	'\u202e': '.', // Right-to-Left override
+	'\u202d': '.', // Left-to-Right override
+	'\u202c': '.', // Pop Directional Formatting
+}
+
 func makeAsciiPart(enc encoding.Encoding, pointer *large.Pointer, cursorAddress int64, out *strings.Builder) bool {
 	for i := 0; i < LINE_SIZE; {
 		var c rune
@@ -119,13 +128,11 @@ func makeAsciiPart(enc encoding.Encoding, pointer *large.Pointer, cursorAddress 
 			pointer = savePointer
 		}
 
-		if c == '\u000A' {
-			c = _HALFWIDTH_DOWNWARDS_ARROW
-		} else if c == '\u000D' {
-			c = _HALFWIDTH_LEFTWARDS_ARROW
-		} else if c == '\t' {
-			c = _RIGHTWARDS_ARROW_TO_BAR
-		} else if c < ' ' || c == '\u007F' {
+		if _c, ok := dontview[c]; ok {
+			c = _c
+		} else if c < ' ' || ('\u007f' <= c && c <= '\u009f') {
+			// Do not show the Unicode Characters in the 'Other, Control' Category
+			//   https://www.fileformat.info/info/unicode/category/Cc/list.htm
 			c = '.'
 		}
 
