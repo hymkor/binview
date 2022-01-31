@@ -6,7 +6,7 @@ binview - Binary data viewer / editor
 Install
 --------
 
-Download the binary package from [Releases](https://github.com/zetamatta/binview/releases) and extract the executable
+Download the binary package from [Releases](https://github.com/hymkor/binview/releases) and extract the executable
 
 Usage
 -----
