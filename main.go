@@ -275,6 +275,8 @@ var unicodeName = map[rune]string{
 	'\uFEFF': "ByteOrderMark",
 	'\uFFFE': "Reverted ByteOrderMark",
 	'\u200D': "ZeroWidthJoin",
+	'\u202E': "RightToLeftOverride",
+	'\u202D': "LeftToRightOverride",
 }
 
 func (app *Application) printDefaultStatusBar() {
