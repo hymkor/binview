@@ -9,9 +9,9 @@ import (
 	"github.com/nyaosorg/go-readline-ny"
 	"github.com/nyaosorg/go-readline-ny/simplehistory"
 
-	"github.com/zetamatta/binview/internal/encoding"
-	"github.com/zetamatta/binview/internal/large"
-	"github.com/zetamatta/binview/internal/nonblock"
+	"github.com/hymkor/binview/internal/encoding"
+	"github.com/hymkor/binview/internal/large"
+	"github.com/hymkor/binview/internal/nonblock"
 )
 
 const (

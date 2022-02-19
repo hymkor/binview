@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	. "github.com/zetamatta/binview/internal/large"
+	. "github.com/hymkor/binview/internal/large"
 )
 
 func _insert(exp string) func(*Application) error {

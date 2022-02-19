@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/zetamatta/binview/internal/encoding"
-	"github.com/zetamatta/binview/internal/large"
+	"github.com/hymkor/binview/internal/encoding"
+	"github.com/hymkor/binview/internal/large"
 )
 
 var (
