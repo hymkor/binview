@@ -261,12 +261,12 @@ func NewApplication(in io.Reader, out io.Writer, defaultName string) (*Applicati
 	return this, nil
 }
 
-func (this *Application) Close() error {
-	io.WriteString(this.out, _ANSI_CURSOR_ON)
-	io.WriteString(this.out, _ANSI_RESET)
+func (app *Application) Close() error {
+	io.WriteString(app.out, _ANSI_CURSOR_ON)
+	io.WriteString(app.out, _ANSI_RESET)
 
-	if this.tty1 != nil {
-		this.tty1.Close()
+	if app.tty1 != nil {
+		app.tty1.Close()
 	}
 	return nil
 }
