@@ -16,10 +16,7 @@
     "bin": [
         "binview.exe"
     ],
-    "checkver": {
-        "github": "https://github.com/hymkor/binview",
-        "regex": "tag/([\\d\\._]+)"
-    },
+    "checkver": "github",
     "autoupdate": {
         "architecture": {
             "32bit": {
