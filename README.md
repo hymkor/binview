@@ -6,9 +6,17 @@ binview - Binary data viewer / editor
 Install
 --------
 
+### Manual installation
+
 Download the binary package from [Releases](https://github.com/hymkor/binview/releases) and extract the executable.
 
-### for scoop-installer
+### Use "go install"
+
+```
+go install github.com/hymkor/binview@latest
+```
+
+### Use scoop-installer
 
 ```
 scoop install https://raw.githubusercontent.com/hymkor/binview/master/binview.json
