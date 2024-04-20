@@ -1,15 +1,17 @@
-NAME=$(lastword $(subst /, ,$(abspath .)))
-VERSION=$(shell git.exe describe --tags)
-GOOPT=-ldflags "-s -w -X main.version=$(VERSION)"
-EXE=$(shell go env GOEXE)
 ifeq ($(OS),Windows_NT)
     SHELL=CMD.EXE
     SET=set
     DEL=del
+    NUL=nul
 else
     SET=export
     DEL=rm
+    NUL=/dev/null
 endif
+NAME=$(notdir $(CURDIR))
+VERSION=$(shell git describe --tags 2>$(NUL))
+GOOPT=-ldflags "-s -w -X main.version=$(VERSION)"
+EXE=$(shell go env GOEXE)
 
 all:
 	go fmt
@@ -18,15 +20,15 @@ all:
 test:
 	go test -v
 
-_package:
+_dist:
 	$(SET) "CGO_ENABLED=0" && go build $(GOOPT)
 	zip -9 $(NAME)-$(VERSION)-$(GOOS)-$(GOARCH).zip $(NAME)$(EXE)
 
-package:
-	$(SET) "GOOS=linux" && $(SET) "GOARCH=386"   && $(MAKE) _package
-	$(SET) "GOOS=linux" && $(SET) "GOARCH=amd64" && $(MAKE) _package
-	$(SET) "GOOS=windows" && $(SET) "GOARCH=386"   && $(MAKE) _package
-	$(SET) "GOOS=windows" && $(SET) "GOARCH=amd64" && $(MAKE) _package
+dist:
+	$(SET) "GOOS=linux" && $(SET) "GOARCH=386"   && $(MAKE) _dist
+	$(SET) "GOOS=linux" && $(SET) "GOARCH=amd64" && $(MAKE) _dist
+	$(SET) "GOOS=windows" && $(SET) "GOARCH=386"   && $(MAKE) _dist
+	$(SET) "GOOS=windows" && $(SET) "GOARCH=amd64" && $(MAKE) _dist
 
 clean:
 	$(DEL) *.zip $(NAME)$(EXE)
