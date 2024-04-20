@@ -7,24 +7,25 @@ import (
 	"io"
 
 	"github.com/nyaosorg/go-readline-ny"
+	"github.com/nyaosorg/go-readline-ny/keys"
 )
 
-type Tty = readline.MinimumTty
+type Tty = readline.XTty
 
 func getline(out io.Writer, prompt string, defaultStr string, history readline.IHistory) (string, error) {
 	editor := readline.Editor{
 		Writer:  out,
 		Default: defaultStr,
 		Cursor:  65535,
-		Prompt: func() (int, error) {
-			fmt.Fprintf(out, "\r\x1B[0;33;40;1m%s%s", prompt, _ANSI_ERASE_LINE)
+		PromptWriter: func(w io.Writer) (int, error) {
+			fmt.Fprintf(w, "\r\x1B[0;33;40;1m%s%s", prompt, _ANSI_ERASE_LINE)
 			return 2, nil
 		},
-		LineFeed: func(readline.Result) {},
-		History:  history,
+		LineFeedWriter: func(readline.Result, io.Writer) (int, error) { return 0, nil },
+		History:        history,
 	}
 	defer io.WriteString(out, _ANSI_CURSOR_OFF)
-	editor.BindKeySymbol(readline.K_ESCAPE, readline.F_INTR)
+	editor.BindKey(keys.Escape, readline.CmdInterrupt)
 	text, err := editor.ReadLine(context.Background())
 	if err == readline.CtrlC {
 		return "", errors.New("Canceled")
