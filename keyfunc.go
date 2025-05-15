@@ -11,7 +11,6 @@ import (
 
 	"github.com/hymkor/binview/internal/encoding"
 	"github.com/hymkor/binview/internal/large"
-	"github.com/hymkor/binview/internal/nonblock"
 )
 
 const (
@@ -165,20 +164,15 @@ func keyFuncRemoveByte(this *Application) error {
 
 var overWritten = map[string]struct{}{}
 
-func getlineOr(out io.Writer, prompt string, defaultString string, history readline.IHistory, f func() bool) (string, error) {
-	worker := nonblock.New(func() (string, error) {
-		return getline(out, prompt, defaultString, history)
-	})
-	result, err := worker.GetOr(f)
-	worker.Close()
-	return result, err
+func getlineOr(out io.Writer, prompt string, defaultString string, history readline.IHistory) (string, error) {
+	return getline(out, prompt, defaultString, history)
 }
 
 var fnameHistory = simplehistory.New()
 
 func writeFile(buffer *large.Buffer, tty1 Tty, out io.Writer, fname string) (string, error) {
 	var err error
-	fname, err = getlineOr(out, "write to>", fname, fnameHistory, func() bool { return buffer.Fetch() == nil })
+	fname, err = getlineOr(out, "write to>", fname, fnameHistory)
 	if err != nil {
 		return "", err
 	}
@@ -228,8 +222,7 @@ var byteHistory = simplehistory.New()
 func keyFuncReplaceByte(this *Application) error {
 	bytes, err := getlineOr(this.out, "replace>",
 		fmt.Sprintf("0x%02X", this.cursor.Value()),
-		byteHistory,
-		func() bool { return this.buffer.Fetch() == nil })
+		byteHistory)
 	if err != nil {
 		this.message = err.Error()
 		return nil
@@ -271,9 +264,7 @@ func gotoAddress(app *Application, address int64) error {
 var addressHistory = simplehistory.New()
 
 func keyFuncGoTo(app *Application) error {
-	addressStr, err := getlineOr(app.out, "Goto Offset>", "0x", addressHistory, func() bool {
-		return app.buffer.Fetch() == nil
-	})
+	addressStr, err := getlineOr(app.out, "Goto Offset>", "0x", addressHistory)
 	if err != nil {
 		app.message = err.Error()
 		return nil
@@ -310,7 +301,7 @@ func keyFuncUtf16BeMode(app *Application) error {
 var expHistory = simplehistory.New()
 
 func readExpression(app *Application, prompt string) (string, error) {
-	exp, err := getlineOr(app.out, prompt, "0x00", expHistory, func() bool { return app.buffer.Fetch() == nil })
+	exp, err := getlineOr(app.out, prompt, "0x00", expHistory)
 	if err != nil {
 		return "", err
 	}
