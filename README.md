@@ -69,50 +69,50 @@ $ cat FILE | binview
 Key-binding
 -----------
 
-* q , ESCAPE
-    * quit
-* h , BACKSPACE , ARROW-LEFT , Ctrl-B
-    * move the cursor left.
-* j , ARROW-DOWN , Ctrl-N
-    * move the cursor down.
-* k , ARROW-UP , Ctrl-P
-    * move the cursor up.
-* l , SPACE , ARRIW-RIGHT , Ctrl-F
-    * move the cursor right.
-* 0(zero) , ^ , Ctrl-A
-    * move the cursor to the top of the current line.
-* $ , Ctrl-E
-    * move the cursor to the tail of the current line.
-* &lt;
-    * move the cursor to the begin of the file.
-* &gt; G
-    * move thr cursor to the end of the file.
-* r
-    * replace one byte
-* i
-    * insert data (for example: `0xFF`,`U+0000`,`"string"`)
-* a
-    * append data (for example: `0xFF`,`U+0000`,`"string"`)
-* x , DEL
-    * delete and yank one byte on the cursor
-* p
-    * paste 1 byte the rightside of the cursor
-* P
-    * paste 1 byte the leftside of the cursor
-* u
-    * undo
-* w
-    * output to file
-* &amp;
-    * move the cursor to the address input
-* ALT-U
-    * Change the character encoding to UTF8 (default)
-* ALT-A
-    * Change the character encoding to ANSI, the current codepage (Windows-Only)
-* ALT-L
-    * Change the character encoding to UTF16LE
-* ALT-B
-    * Change the character encoding to UTF16BE
+* `q`, `ESCAPE`  
+    * Quit
+* `h`, `BACKSPACE`, `ARROW-LEFT`, `Ctrl-B`  
+    * Move the cursor left
+* `j`, `ARROW-DOWN`, `Ctrl-N`  
+    * Move the cursor down
+* `k`, `ARROW-UP`, `Ctrl-P`  
+    * Move the cursor up
+* `l`, `SPACE`, `ARROW-RIGHT`, `Ctrl-F`  
+    * Move the cursor right
+* `0` (zero), `^`, `Ctrl-A`  
+    * Move the cursor to the beginning of the current line
+* `$`, `Ctrl-E`  
+    * Move the cursor to the end of the current line
+* `<`  
+    * Move the cursor to the beginning of the file
+* `>`, `G`  
+    * Move the cursor to the end of the file
+* `r`  
+    * Replace the byte under the cursor
+* `i`  
+    * Insert data (e.g., `0xFF`, `U+0000`, `"string"`)
+* `a`  
+    * Append data (e.g., `0xFF`, `U+0000`, `"string"`)
+* `x`, `DEL`  
+    * Delete and yank the byte under the cursor
+* `p`  
+    * Paste one byte to the right side of the cursor
+* `P`  
+    * Paste one byte to the left side of the cursor
+* `u`  
+    * Undo
+* `w`  
+    * Write changes to file
+* `&`  
+    * Jump to a specific address
+* `ALT-U`  
+    * Change the character encoding to UTF-8 (default)
+* `ALT-A`  
+    * Change the character encoding to ANSI (the current Windows code page)
+* `ALT-L`  
+    * Change the character encoding to UTF-16LE
+* `ALT-B`  
+    * Change the character encoding to UTF-16BE
 
 Release Note
 ------------
