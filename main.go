@@ -357,8 +357,12 @@ func mains(args []string) error {
 	}
 	defer app.Close()
 
-	keyWorker := nonblock.New(func() (string, error) { return app.tty1.GetKey() })
+	keyWorker := nonblock.New(app.tty1.GetKey, app.buffer.FetchOnly)
 	defer keyWorker.Close()
+	app.buffer.CustomFetch = keyWorker.Fetch
+	app.buffer.CustomTryFetch = func() ([]byte, error) {
+		return keyWorker.TryFetch(time.Second / 100)
+	}
 
 	var lastWidth, lastHeight int
 	for {
@@ -393,20 +397,17 @@ func mains(args []string) error {
 		const interval = 10
 		displayUpdateTime := time.Now().Add(time.Second / interval)
 
-		ch, err := keyWorker.GetOr(func() bool {
-			err := app.buffer.Fetch()
-			if err != nil && err != io.EOF {
-				return false
-			}
+		ch, err := keyWorker.GetOr(func(data []byte, err error) (cont bool) {
+			cont = app.buffer.StoreOnly(data, err)
 			if app.message != "" {
-				return err == nil
+				return
 			}
 			if err == io.EOF || time.Now().After(displayUpdateTime) {
 				app.out.Write([]byte{'\r'})
 				app.printDefaultStatusBar()
 				displayUpdateTime = time.Now().Add(time.Second / interval)
 			}
-			return err == nil
+			return
 		})
 		if err != nil {
 			return err
