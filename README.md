@@ -115,7 +115,17 @@ Key-binding
     * Change the character encoding to UTF16BE
 
 Release Note
-============
+------------
 
 - [English](/release_note_en.md)
 - [Japanese](/release_note_ja.md)
+
+Acknowledgements
+----------------
+
+- [spiegel-im-spiegel (Spiegel)](https://github.com/spiegel-im-spiegel) - [Issue #1](https://github.com/hymkor/binview/issues/1)
+
+Author
+------
+
+- [hymkor (HAYAMA Kaoru)](https://github.com/hymkor)
