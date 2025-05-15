@@ -1,9 +1,10 @@
-binview - Binary data viewer / editor
-========================
+binview - Terminal Binary Editor
+================================
 
 ![ScreenShot](./screenshot.png)
 
-## Key Features
+Key Features
+------------
 
 * **Fast startup with asynchronous loading**
   The viewer launches instantly and loads data in the background, allowing immediate interaction even with large files.
@@ -114,8 +115,8 @@ Key-binding
 * `ALT-B`  
     * Change the character encoding to UTF-16BE
 
-Release Note
-------------
+Release Notes
+-------------
 
 - [English](/release_note_en.md)
 - [Japanese](/release_note_ja.md)
