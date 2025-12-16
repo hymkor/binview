@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/nyaosorg/go-ttyadapter/auto"
+
 	. "github.com/hymkor/binview/internal/large"
 )
 
@@ -27,7 +29,11 @@ func try(
 	funcs ...func(app *Application) error) {
 
 	ALLOC_SIZE = 4
-	app, err := NewApplication(strings.NewReader(source), io.Discard, "dummy")
+	app, err := NewApplication(
+		&auto.Pilot{Text: []string{}},
+		strings.NewReader(source),
+		io.Discard,
+		"dummy")
 	if err != nil {
 		t.Fatal(err.Error())
 		return
@@ -130,7 +136,11 @@ func TestKeyFuncAddByte(t *testing.T) {
 }
 
 func TestEmptyData(t *testing.T) {
-	_, err := NewApplication(strings.NewReader(""), io.Discard, "dummy")
+	_, err := NewApplication(
+		&auto.Pilot{Text: []string{}},
+		strings.NewReader(""),
+		io.Discard,
+		"dummy")
 	if err == nil {
 		t.Fatal("with empty data,NewApplication must return error, but it did not")
 		return
