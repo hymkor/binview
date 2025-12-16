@@ -8,9 +8,11 @@ import (
 
 	"github.com/nyaosorg/go-readline-ny"
 	"github.com/nyaosorg/go-readline-ny/keys"
+
+	"github.com/nyaosorg/go-ttyadapter"
 )
 
-type Tty = readline.XTty
+type Tty = ttyadapter.Tty
 
 func getline(out io.Writer, prompt string, defaultStr string, history readline.IHistory) (string, error) {
 	editor := readline.Editor{
@@ -35,6 +37,6 @@ func getline(out io.Writer, prompt string, defaultStr string, history readline.I
 
 func yesNo(tty1 Tty, out io.Writer, message string) bool {
 	fmt.Fprintf(out, "%s\r%s%s", _ANSI_YELLOW, message, _ANSI_ERASE_LINE)
-	ch, err := readline.GetKey(tty1)
+	ch, err := tty1.GetKey()
 	return err == nil && ch == "y"
 }
