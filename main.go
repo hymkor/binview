@@ -234,7 +234,7 @@ func detectEncoding(p *large.Pointer) encoding.Encoding {
 	return encoding.UTF8Encoding{}
 }
 
-func NewApplication(in io.Reader, out io.Writer, defaultName string) (*Application, error) {
+func NewApplication(tty ttyadapter.Tty, in io.Reader, out io.Writer, defaultName string) (*Application, error) {
 	this := &Application{
 		savePath:  defaultName,
 		in:        in,
@@ -252,7 +252,7 @@ func NewApplication(in io.Reader, out io.Writer, defaultName string) (*Applicati
 	}
 	this.encoding = detectEncoding(this.cursor)
 
-	this.tty1 = &tty8.Tty{}
+	this.tty1 = tty
 	err := this.tty1.Open(nil)
 	if err != nil {
 		return nil, err
@@ -351,7 +351,7 @@ func mains(args []string) error {
 		}
 	}
 
-	app, err := NewApplication(in, out, savePath)
+	app, err := NewApplication(&tty8.Tty{}, in, out, savePath)
 	if err != nil {
 		return err
 	}
