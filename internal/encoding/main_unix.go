@@ -3,10 +3,6 @@
 
 package encoding
 
-import (
-	"errors"
-)
-
 func IsDBCSLeadByte(b byte) bool {
 	return false
 }

@@ -3,6 +3,7 @@ package encoding
 import (
 	"errors"
 	"testing"
+	"runtime"
 )
 
 var _ Encoding = UTF8Encoding{}
@@ -11,7 +12,7 @@ var _ Encoding = UTF16LE()
 var _ Encoding = UTF16BE()
 
 func TestIsDBCSLeadByte(t *testing.T) {
-	if !IsDBCSLeadByte(0x83) { // Japanese katakana SO
+	if runtime.GOOS == "windows" && !IsDBCSLeadByte(0x83) { // Japanese katakana SO
 		t.Fail()
 		return
 	}
