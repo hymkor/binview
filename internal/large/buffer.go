@@ -16,6 +16,7 @@ type Buffer struct {
 	lines   *list.List
 	reader  *bufio.Reader
 	allsize int64
+	allocSize int
 }
 
 func NewBuffer(r io.Reader) *Buffer {
@@ -23,6 +24,7 @@ func NewBuffer(r io.Reader) *Buffer {
 		lines:   list.New(),
 		reader:  bufio.NewReader(r),
 		allsize: 0,
+		allocSize: 8,
 	}
 }
 
@@ -34,7 +36,10 @@ func (b *Buffer) Fetch() error {
 	if b.reader == nil {
 		return io.EOF
 	}
-	buffer := make([]byte, ALLOC_SIZE)
+	if b.allocSize < ALLOC_SIZE {
+		b.allocSize *= 2
+	}
+	buffer := make([]byte, b.allocSize)
 	n, err := b.reader.Read(buffer)
 
 	if n > 0 {
