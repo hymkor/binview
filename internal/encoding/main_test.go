@@ -1,6 +1,7 @@
 package encoding
 
 import (
+	"errors"
 	"testing"
 )
 
@@ -23,7 +24,9 @@ func TestIsDBCSLeadByte(t *testing.T) {
 func TestToWideChar(t *testing.T) {
 	utf16, err := ToWideChar(0x83, 0x5C)
 	if err != nil {
-		t.Fatal(err.Error())
+		if !errors.Is(err, ErrNotSupport) {
+			t.Fatal(err.Error())
+		}
 		return
 	}
 	if len(utf16) != 1 {

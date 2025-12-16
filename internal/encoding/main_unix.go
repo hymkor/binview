@@ -12,5 +12,5 @@ func IsDBCSLeadByte(b byte) bool {
 }
 
 func ToWideChar(bytes ...byte) ([]uint16, error) {
-	return []uint16{}, errors.New("Not Support")
+	return []uint16{}, ErrNotSupport
 }

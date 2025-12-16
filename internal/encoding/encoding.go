@@ -1,6 +1,7 @@
 package encoding
 
 import (
+	"errors"
 	"unicode/utf16"
 	"unicode/utf8"
 
@@ -23,6 +24,8 @@ type Encoding interface {
 }
 
 type UTF8Encoding struct{}
+
+var ErrNotSupport = errors.New("Not Support")
 
 func (UTF8Encoding) Count(b byte, _ int64) int {
 	if 0xF0 <= b && b <= 0xF4 {
