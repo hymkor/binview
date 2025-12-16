@@ -13,9 +13,9 @@ import (
 
 	"github.com/mattn/go-colorable"
 	"github.com/mattn/go-runewidth"
-	"github.com/mattn/go-tty"
 
-	"github.com/nyaosorg/go-readline-ny"
+	"github.com/nyaosorg/go-ttyadapter"
+	"github.com/nyaosorg/go-ttyadapter/tty8"
 
 	"github.com/hymkor/binview/internal/argf"
 	"github.com/hymkor/binview/internal/encoding"
@@ -198,7 +198,7 @@ func (app *Application) View() (int, error) {
 }
 
 type Application struct {
-	tty1         *tty.TTY
+	tty1         ttyadapter.Tty
 	in           io.Reader
 	out          io.Writer
 	screenWidth  int
@@ -252,8 +252,8 @@ func NewApplication(in io.Reader, out io.Writer, defaultName string) (*Applicati
 	}
 	this.encoding = detectEncoding(this.cursor)
 
-	var err error
-	this.tty1, err = tty.Open()
+	this.tty1 = &tty8.Tty{}
+	err := this.tty1.Open(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -357,7 +357,7 @@ func mains(args []string) error {
 	}
 	defer app.Close()
 
-	keyWorker := nonblock.New(func() (string, error) { return readline.GetKey(app.tty1) })
+	keyWorker := nonblock.New(func() (string, error) { return app.tty1.GetKey() })
 	defer keyWorker.Close()
 
 	var lastWidth, lastHeight int
