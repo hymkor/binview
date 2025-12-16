@@ -1,27 +1,33 @@
 ifeq ($(OS),Windows_NT)
     SHELL=CMD.EXE
     SET=set
+    WHICH=where.exe
     DEL=del
     NUL=nul
 else
     SET=export
+    WHICH=which
     DEL=rm
     NUL=/dev/null
+endif
+ifndef GO
+    SUPPORTGO=go1.20.14
+    GO:=$(shell $(WHICH) $(SUPPORTGO) 2>$(NUL) || echo go)
 endif
 NAME=$(notdir $(CURDIR))
 VERSION=$(shell git describe --tags 2>$(NUL))
 GOOPT=-ldflags "-s -w -X main.version=$(VERSION)"
-EXE=$(shell go env GOEXE)
+EXE=$(shell $(GO) env GOEXE)
 
 all:
-	go fmt
-	$(SET) "CGO_ENABLED=0" && go build $(GOOPT)
+	$(GO) fmt
+	$(SET) "CGO_ENABLED=0" && $(GO) build $(GOOPT)
 
 test:
-	go test -v
+	$(GO) test -v
 
 _dist:
-	$(SET) "CGO_ENABLED=0" && go build $(GOOPT)
+	$(SET) "CGO_ENABLED=0" && $(GO) build $(GOOPT)
 	zip -9 $(NAME)-$(VERSION)-$(GOOS)-$(GOARCH).zip $(NAME)$(EXE)
 
 dist:
