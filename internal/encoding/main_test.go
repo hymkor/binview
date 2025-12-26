@@ -2,8 +2,8 @@ package encoding
 
 import (
 	"errors"
-	"testing"
 	"runtime"
+	"testing"
 )
 
 var _ Encoding = UTF8Encoding{}
