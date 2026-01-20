@@ -38,6 +38,7 @@ func try(
 		t.Fatal(err.Error())
 		return
 	}
+	app.buffer.ReadAll()
 
 	for _, f := range funcs {
 		if err := f(app); err != nil {

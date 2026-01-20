@@ -1,6 +1,8 @@
 Release notes
 =============
 
+- Changed `G` (`Shift`-`G`) to move to the end of the currently loaded data instead of waiting for all data to be read. (#11)
+
 v0.6.3
 ------
 Jan 2, 2022

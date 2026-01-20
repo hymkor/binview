@@ -107,7 +107,6 @@ func (p *Pointer) Skip(n int64) error {
 }
 
 func (p *Pointer) GoEndOfFile() {
-	p.buffer.ReadAll()
 	p.element = p.buffer.lines.Back()
 	p.address = p.buffer.Len() - 1
 	p.offset = len(p.element.Value.(_Block)) - 1
