@@ -3,7 +3,9 @@ package large
 import (
 	"bufio"
 	"container/list"
+	"errors"
 	"io"
+	"os"
 )
 
 type _Block = []byte
@@ -45,13 +47,22 @@ func (b *Buffer) Fetch() error {
 	return err
 }
 
-func (b *Buffer) ReadAll() {
-	for b.Fetch() == nil {
+func (b *Buffer) ReadAll() error {
+	for {
+		err := b.Fetch()
+		if err != nil && !errors.Is(err, os.ErrDeadlineExceeded) {
+			if errors.Is(err, io.EOF) {
+				return nil
+			}
+			return err
+		}
 	}
 }
 
 func (b *Buffer) WriteTo(w io.Writer) (int64, error) {
-	b.ReadAll()
+	if err := b.ReadAll(); err != nil {
+		return 0, err
+	}
 	n := int64(0)
 	for p := b.lines.Front(); p != nil; p = p.Next() {
 		m, err := w.Write(p.Value.(_Block))
