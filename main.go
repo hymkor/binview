@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -377,7 +378,7 @@ func mains(args []string) error {
 			io.WriteString(app.out, _ANSI_CURSOR_OFF)
 		}
 		lf, err := app.View()
-		if err != nil {
+		if err != nil && !errors.Is(err, os.ErrDeadlineExceeded) {
 			return err
 		}
 		if app.buffer.Len() <= 0 {
@@ -409,7 +410,7 @@ func mains(args []string) error {
 			}
 			return
 		})
-		if err != nil {
+		if err != nil && !errors.Is(err, os.ErrDeadlineExceeded) {
 			return err
 		}
 		app.message = ""
@@ -433,7 +434,7 @@ func mains(args []string) error {
 }
 
 func main() {
-	if err := mains(os.Args[1:]); err != nil && err != io.EOF {
+	if err := mains(os.Args[1:]); err != nil && !errors.Is(err, io.EOF) {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}

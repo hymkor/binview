@@ -42,7 +42,7 @@ func (b *Buffer) FetchOnly() ([]byte, error) {
 	}
 	buffer := make([]byte, b.allocSize)
 	n, err := b.reader.Read(buffer)
-	if err != nil {
+	if err != nil && !errors.Is(err, os.ErrDeadlineExceeded) {
 		b.reader = nil
 	}
 	return buffer[:n], err

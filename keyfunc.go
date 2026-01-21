@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -37,7 +38,7 @@ const (
 // keyFuncNext moves the cursor to the the next 16-bytes block.
 func keyFuncNext(this *Application) error {
 	if err := this.cursor.Skip(LINE_SIZE); err != nil {
-		if err != io.EOF {
+		if !errors.Is(err, io.EOF) && !errors.Is(err, os.ErrDeadlineExceeded) {
 			return err
 		}
 	}
