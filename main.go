@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 	"unicode"
@@ -65,8 +64,6 @@ const (
 	_RIGHTWARDS_ARROW_TO_BAR                 = '\u21E5' // ->|
 	_RIGHTWARDS_TRIANGLE_HEADED_ARROW_TO_BAR = '\u2B72' // ->|
 )
-
-var version string = "snapshot"
 
 // See. en.wikipedia.org/wiki/Unicode_control_characters#Control_pictures
 
@@ -328,15 +325,12 @@ func (app *Application) shiftWindowToSeeCursorLine() {
 	}
 }
 
-func mains(args []string) error {
+func Run(args []string) error {
 	disable := colorable.EnableColorsStdout(nil)
 	if disable != nil {
 		defer disable()
 	}
 	out := colorable.NewColorableStdout()
-
-	fmt.Fprintf(out, "binview %s-%s-%s by %s\n",
-		version, runtime.GOOS, runtime.GOARCH, runtime.Version())
 
 	in, err := argf.New(args)
 	if err != nil {
@@ -442,12 +436,5 @@ func mains(args []string) error {
 		} else {
 			io.WriteString(app.out, "\r")
 		}
-	}
-}
-
-func main() {
-	if err := mains(os.Args[1:]); err != nil && !errors.Is(err, io.EOF) {
-		fmt.Fprintln(os.Stderr, err.Error())
-		os.Exit(1)
 	}
 }
