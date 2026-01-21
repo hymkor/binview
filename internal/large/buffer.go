@@ -1,7 +1,6 @@
 package large
 
 import (
-	"bufio"
 	"container/list"
 	"errors"
 	"io"
@@ -13,16 +12,20 @@ type _Block = []byte
 var ALLOC_SIZE = 4096
 
 type Buffer struct {
-	lines   *list.List
-	reader  *bufio.Reader
-	allsize int64
+	lines          *list.List
+	reader         io.Reader
+	allsize        int64
+	allocSize      int
+	CustomFetch    func() ([]byte, error)
+	CustomTryFetch func() ([]byte, error)
 }
 
 func NewBuffer(r io.Reader) *Buffer {
 	return &Buffer{
-		lines:   list.New(),
-		reader:  bufio.NewReader(r),
-		allsize: 0,
+		lines:     list.New(),
+		reader:    r,
+		allsize:   0,
+		allocSize: 8,
 	}
 }
 
@@ -30,20 +33,53 @@ func (b *Buffer) Len() int64 {
 	return b.allsize
 }
 
-func (b *Buffer) Fetch() error {
+func (b *Buffer) FetchOnly() ([]byte, error) {
 	if b.reader == nil {
-		return io.EOF
+		return nil, io.EOF
 	}
-	buffer := make([]byte, ALLOC_SIZE)
+	if b.allocSize*2 <= ALLOC_SIZE {
+		b.allocSize *= 2
+	}
+	buffer := make([]byte, b.allocSize)
 	n, err := b.reader.Read(buffer)
-
-	if n > 0 {
-		b.lines.PushBack(_Block(buffer[:n]))
-		b.allsize += int64(n)
-	}
-	if err != nil {
+	if err != nil && !errors.Is(err, os.ErrDeadlineExceeded) {
 		b.reader = nil
 	}
+	return buffer[:n], err
+}
+
+func (b *Buffer) StoreOnly(data []byte, err error) bool {
+	if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, os.ErrDeadlineExceeded) {
+		return false
+	}
+	if len(data) > 0 {
+		b.lines.PushBack(_Block(data))
+		b.allsize += int64(len(data))
+	}
+	return !errors.Is(err, os.ErrDeadlineExceeded)
+}
+
+func (b *Buffer) Fetch() error {
+	var data []byte
+	var err error
+	if b.CustomFetch != nil {
+		data, err = b.CustomFetch()
+	} else {
+		data, err = b.FetchOnly()
+	}
+	b.StoreOnly(data, err)
+	return err
+}
+
+func (b *Buffer) tryFetch() error {
+	var data []byte
+	var err error
+	if b.CustomTryFetch != nil {
+		data, err = b.CustomTryFetch()
+	} else {
+		data, err = b.FetchOnly()
+	}
+	b.StoreOnly(data, err)
 	return err
 }
 

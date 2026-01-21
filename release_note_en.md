@@ -2,6 +2,7 @@ Release notes
 =============
 
 - Changed `G` (`Shift`-`G`) to move to the end of the currently loaded data instead of waiting for all data to be read. (#11)
+- Prevent key input responsiveness from being blocked even when data reading stalls. (#13)
 
 v0.6.3
 ------

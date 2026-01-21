@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -357,10 +358,15 @@ func mains(args []string) error {
 	}
 	defer app.Close()
 
-	keyWorker := nonblock.New(func() (string, error) { return app.tty1.GetKey() })
+	keyWorker := nonblock.New(app.tty1.GetKey, app.buffer.FetchOnly)
 	defer keyWorker.Close()
+	app.buffer.CustomFetch = keyWorker.Fetch
+	app.buffer.CustomTryFetch = func() ([]byte, error) {
+		return keyWorker.TryFetch(time.Second / 100)
+	}
 
 	var lastWidth, lastHeight int
+	autoRepaint := true
 	for {
 		app.screenWidth, app.screenHeight, err = app.tty1.Size()
 		if err != nil {
@@ -373,7 +379,7 @@ func mains(args []string) error {
 			io.WriteString(app.out, _ANSI_CURSOR_OFF)
 		}
 		lf, err := app.View()
-		if err != nil {
+		if err != nil && !errors.Is(err, os.ErrDeadlineExceeded) {
 			return err
 		}
 		if app.buffer.Len() <= 0 {
@@ -393,22 +399,30 @@ func mains(args []string) error {
 		const interval = 10
 		displayUpdateTime := time.Now().Add(time.Second / interval)
 
-		ch, err := keyWorker.GetOr(func() bool {
-			err := app.buffer.Fetch()
-			if err != nil && err != io.EOF {
-				return false
-			}
+		ch, err := keyWorker.GetOr(func(data []byte, err error) (cont bool) {
+			cont = app.buffer.StoreOnly(data, err)
 			if app.message != "" {
-				return err == nil
+				return
 			}
 			if err == io.EOF || time.Now().After(displayUpdateTime) {
 				app.out.Write([]byte{'\r'})
+				if autoRepaint {
+					if lf > 0 {
+						fmt.Fprintf(app.out, "\x1B[%dA", lf)
+					}
+					lf, _ = app.View()
+					io.WriteString(app.out, "\r\n") // \r is for Linux & go-tty
+					lf++
+					if app.buffer.Len() >= int64(app.screenHeight*LINE_SIZE) {
+						autoRepaint = false
+					}
+				}
 				app.printDefaultStatusBar()
 				displayUpdateTime = time.Now().Add(time.Second / interval)
 			}
-			return err == nil
+			return
 		})
-		if err != nil {
+		if err != nil && !errors.Is(err, os.ErrDeadlineExceeded) {
 			return err
 		}
 		app.message = ""
@@ -432,7 +446,7 @@ func mains(args []string) error {
 }
 
 func main() {
-	if err := mains(os.Args[1:]); err != nil && err != io.EOF {
+	if err := mains(os.Args[1:]); err != nil && !errors.Is(err, io.EOF) {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}
