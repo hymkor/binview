@@ -41,3 +41,5 @@ clean:
 
 manifest:
 	make-scoop-manifest *-windows-*.zip > $(NAME).json
+
+.PHONY: all test _dist dist clean manifest
