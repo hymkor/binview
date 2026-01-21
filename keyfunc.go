@@ -200,9 +200,16 @@ func writeFile(buffer *large.Buffer, tty1 Tty, out io.Writer, fname string) (str
 	if err != nil {
 		return "", err
 	}
-	buffer.WriteTo(fd)
+	_, err1 := buffer.WriteTo(fd)
+	err2 := fd.Close()
+	if err1 != nil {
+		return "", err1
+	}
+	if err2 != nil {
+		return "", err2
+	}
 	fnameHistory.Add(fname)
-	return fname, fd.Close()
+	return fname, nil
 }
 
 func keyFuncWriteFile(this *Application) error {
