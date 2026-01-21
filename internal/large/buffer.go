@@ -1,7 +1,6 @@
 package large
 
 import (
-	"bufio"
 	"container/list"
 	"errors"
 	"io"
@@ -14,7 +13,7 @@ var ALLOC_SIZE = 4096
 
 type Buffer struct {
 	lines          *list.List
-	reader         *bufio.Reader
+	reader         io.Reader
 	allsize        int64
 	allocSize      int
 	CustomFetch    func() ([]byte, error)
@@ -24,7 +23,7 @@ type Buffer struct {
 func NewBuffer(r io.Reader) *Buffer {
 	return &Buffer{
 		lines:     list.New(),
-		reader:    bufio.NewReader(r),
+		reader:    r,
 		allsize:   0,
 		allocSize: 8,
 	}
