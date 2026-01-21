@@ -366,6 +366,7 @@ func mains(args []string) error {
 	}
 
 	var lastWidth, lastHeight int
+	autoRepaint := true
 	for {
 		app.screenWidth, app.screenHeight, err = app.tty1.Size()
 		if err != nil {
@@ -405,6 +406,17 @@ func mains(args []string) error {
 			}
 			if err == io.EOF || time.Now().After(displayUpdateTime) {
 				app.out.Write([]byte{'\r'})
+				if autoRepaint {
+					if lf > 0 {
+						fmt.Fprintf(app.out, "\x1B[%dA", lf)
+					}
+					lf, _ = app.View()
+					io.WriteString(app.out, "\r\n") // \r is for Linux & go-tty
+					lf++
+					if app.buffer.Len() >= int64(app.screenHeight*LINE_SIZE) {
+						autoRepaint = false
+					}
+				}
 				app.printDefaultStatusBar()
 				displayUpdateTime = time.Now().Add(time.Second / interval)
 			}
