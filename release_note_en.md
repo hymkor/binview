@@ -3,6 +3,10 @@ Release notes
 
 - Changed `G` (`Shift`-`G`) to move to the end of the currently loaded data instead of waiting for all data to be read. (#11)
 - Prevent key input responsiveness from being blocked even when data reading stalls. (#13)
+- Renamed the executable from `binview` to `bine`, and updated the product name to Bine. (#14)
+  - (Planned) When the stable version of `bine` is released:
+    - Rename the repository from `binview` to `bine`
+    - Update `go.mod`, `go.sum`, import paths, README URLs, and the Scoop manifest accordingly
 
 v0.6.3
 ------
