@@ -1,4 +1,4 @@
-binview - Terminal Binary Editor
+Bine - A terminal binary editor
 ================================
 
 ![ScreenShot](./screenshot.png)
@@ -10,7 +10,7 @@ Key Features
   The viewer launches instantly and loads data in the background, allowing immediate interaction even with large files.
 
 * **Supports both files and standard input**
-  `binview` can read binary data not only from files but also from standard input, making it easy to use in pipelines.
+  `bine` can read binary data not only from files but also from standard input, making it easy to use in pipelines.
 
 * **Vi-style navigation**
   Navigation keys follow the familiar `vi` keybindings (`h`, `j`, `k`, `l`, etc.), allowing smooth movement for experienced users.  
@@ -23,10 +23,10 @@ Key Features
   Multi-byte characters are visually grouped based on byte structure. Special code points such as BOMs and control characters (e.g., newlines) are annotated with readable names or symbols, making it easier to understand mixed binary/text content and debug encoding issues.
 
 * **Minimal screen usage**
-  `binview` only uses as many terminal lines as needed (1 line = 16 bytes), without occupying the full screen. This makes it easy to inspect or edit small binary data while still seeing the surrounding terminal output.
+  `bine` only uses as many terminal lines as needed (1 line = 16 bytes), without occupying the full screen. This makes it easy to inspect or edit small binary data while still seeing the surrounding terminal output.
 
 * **Cross-platform**
-  Written in Go, `binview` runs on both Windows and Linux. It should also build and work on other Unix-like systems.
+  Written in Go, `bine` runs on both Windows and Linux. It should also build and work on other Unix-like systems.
 
 Install
 --------
@@ -44,7 +44,7 @@ go install github.com/hymkor/binview@latest
 ### Use scoop-installer
 
 ```
-scoop install https://raw.githubusercontent.com/hymkor/binview/master/binview.json
+scoop install https://raw.githubusercontent.com/hymkor/binview/master/bine.json
 ```
 
 or
@@ -58,13 +58,13 @@ Usage
 -----
 
 ```
-$ binview [FILES...]
+$ bine [FILES...]
 ```
 
 or
 
 ```
-$ cat FILE | binview
+$ cat FILE | bine
 ```
 
 Key-binding
