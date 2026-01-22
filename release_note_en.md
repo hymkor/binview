@@ -7,6 +7,8 @@ Release notes
   - (Planned) When the stable version of `bine` is released:
     - Rename the repository from `binview` to `bine`
     - Update `go.mod`, `go.sum`, import paths, README URLs, and the Scoop manifest accordingly
+- Echo the `y` input to the screen during overwrite confirmation. (#17)
+- Display a text animation while waiting for a save operation to complete. (#17)
 
 v0.6.3
 ------

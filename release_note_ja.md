@@ -7,6 +7,8 @@ Release notes
   - (今後の予定) `bine` の安定版をリリースする時点で以下を実施
     - レポジトリ名を `binview` より `bine` にリネーム
     - `go.mod`, `go.sum`, import URL, README の URL, scoop manifest を修正
+- 上書き確認で入力された `y` を画面にエコーバックするようにした (#17)
+- 保存処理の待ち時間中にテキストアニメーションを表示するようにした (#17)
 
 v0.6.3
 ------
