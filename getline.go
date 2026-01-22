@@ -38,5 +38,9 @@ func getline(out io.Writer, prompt string, defaultStr string, history readline.I
 func yesNo(tty1 Tty, out io.Writer, message string) bool {
 	fmt.Fprintf(out, "%s\r%s%s", _ANSI_YELLOW, message, _ANSI_ERASE_LINE)
 	ch, err := tty1.GetKey()
-	return err == nil && ch == "y"
+	if err == nil && (ch == "y" || ch == "Y") {
+		fmt.Fprintf(out, " %s ", ch)
+		return true
+	}
+	return false
 }

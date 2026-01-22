@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/nyaosorg/go-inline-animation"
 	"github.com/nyaosorg/go-readline-ny"
 	"github.com/nyaosorg/go-readline-ny/simplehistory"
 
@@ -195,6 +196,9 @@ func writeFile(buffer *large.Buffer, tty1 Tty, out io.Writer, fname string) (str
 	if err != nil {
 		return "", err
 	}
+	end := animation.Dots.Progress(out)
+	defer end()
+
 	_, err1 := buffer.WriteTo(fd)
 	err2 := fd.Close()
 	if err1 != nil {
