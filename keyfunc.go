@@ -59,11 +59,25 @@ func keyFuncPrevious(this *Application) error {
 }
 
 func keyFuncQuit(this *Application) error {
-	if yesNo(this.tty1, this.out, "Quit Sure ? [y/n]") {
-		io.WriteString(this.out, "\n")
-		return io.EOF
+	if this.dirty {
+		ch, err := ask(this.tty1, this.out, `Quit: Save changes ? ["y": save, "n": quit without saving, other: cancel]`)
+		if err != nil {
+			return err
+		}
+		if ch == "y" || ch == "Y" {
+			newfname, err := writeFile(this.buffer, this.tty1, this.out, this.savePath)
+			if err != nil {
+				this.message = err.Error()
+				return nil
+			}
+			this.dirty = false
+			this.savePath = newfname
+		} else if ch != "n" && ch != "N" {
+			return nil
+		}
 	}
-	return nil
+	io.WriteString(this.out, "\n")
+	return io.EOF
 }
 
 // keyFuncForward moves the cursor to the next one byte.
