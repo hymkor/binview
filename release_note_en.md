@@ -9,6 +9,7 @@ Release notes
     - Update `go.mod`, `go.sum`, import paths, README URLs, and the Scoop manifest accordingly
 - Echo the `y` input to the screen during overwrite confirmation. (#17)
 - Display a text animation while waiting for a save operation to complete. (#17)
+- When executing the `q` command, prompt whether to save the changes (#18)
 
 v0.6.3
 ------
