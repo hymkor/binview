@@ -35,16 +35,25 @@ Install
 
 Download the binary package from [Releases](https://github.com/hymkor/binview/releases) and extract the executable.
 
-### Use "go install"
+<!-- pwsh -Command "readme-install.ps1" | -->
+
+### Use [eget] installer (cross-platform)
+
+```sh
+brew install eget        # Unix-like systems
+# or
+scoop install eget       # Windows
+
+cd (YOUR-BIN-DIRECTORY)
+eget hymkor/binview
+```
+
+[eget]: https://github.com/zyedidia/eget
+
+### Use [scoop]-installer (Windows only)
 
 ```
-go install github.com/hymkor/binview@latest
-```
-
-### Use scoop-installer
-
-```
-scoop install https://raw.githubusercontent.com/hymkor/binview/master/bine.json
+scoop install https://raw.githubusercontent.com/hymkor/binview/master/binview.json
 ```
 
 or
@@ -53,6 +62,17 @@ or
 scoop bucket add hymkor https://github.com/hymkor/scoop-bucket
 scoop install binview
 ```
+
+[scoop]: https://scoop.sh/
+
+### Use "go install" (requires Go toolchain)
+
+```
+go install github.com/hymkor/binview@latest
+```
+
+Because `go install` introduces the executable into `$HOME/go/bin` or `$GOPATH/bin`, you need to add this directory to your `$PATH` to execute `binview`.
+<!-- -->
 
 Usage
 -----
