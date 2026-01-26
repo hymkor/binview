@@ -9,43 +9,28 @@ import (
 
 type _Block = []byte
 
-var ALLOC_SIZE = 4096
-
 type Buffer struct {
-	lines          *list.List
-	reader         io.Reader
-	allsize        int64
-	allocSize      int
-	CustomFetch    func() ([]byte, error)
-	CustomTryFetch func() ([]byte, error)
+	lines        *list.List
+	allsize      int64
+	FetchFunc    func() ([]byte, error)
+	TryFetchFunc func() ([]byte, error)
 }
 
 func NewBuffer(r io.Reader) *Buffer {
-	return &Buffer{
-		lines:     list.New(),
+	f := &bufferFetch{
 		reader:    r,
-		allsize:   0,
 		allocSize: 8,
+	}
+	return &Buffer{
+		lines:        list.New(),
+		allsize:      0,
+		FetchFunc:    f.FetchOnly,
+		TryFetchFunc: f.FetchOnly,
 	}
 }
 
 func (b *Buffer) Len() int64 {
 	return b.allsize
-}
-
-func (b *Buffer) FetchOnly() ([]byte, error) {
-	if b.reader == nil {
-		return nil, io.EOF
-	}
-	if b.allocSize*2 <= ALLOC_SIZE {
-		b.allocSize *= 2
-	}
-	buffer := make([]byte, b.allocSize)
-	n, err := b.reader.Read(buffer)
-	if err != nil && !errors.Is(err, os.ErrDeadlineExceeded) {
-		b.reader = nil
-	}
-	return buffer[:n], err
 }
 
 func (b *Buffer) StoreOnly(data []byte, err error) bool {
@@ -60,25 +45,13 @@ func (b *Buffer) StoreOnly(data []byte, err error) bool {
 }
 
 func (b *Buffer) Fetch() error {
-	var data []byte
-	var err error
-	if b.CustomFetch != nil {
-		data, err = b.CustomFetch()
-	} else {
-		data, err = b.FetchOnly()
-	}
+	data, err := b.FetchFunc()
 	b.StoreOnly(data, err)
 	return err
 }
 
 func (b *Buffer) tryFetch() error {
-	var data []byte
-	var err error
-	if b.CustomTryFetch != nil {
-		data, err = b.CustomTryFetch()
-	} else {
-		data, err = b.FetchOnly()
-	}
+	data, err := b.TryFetchFunc()
 	b.StoreOnly(data, err)
 	return err
 }
