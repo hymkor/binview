@@ -10,8 +10,8 @@ type chunk = []byte
 
 type Buffer struct {
 	*Storage
-	Fetch        func() ([]byte, error)
-	TryFetchFunc func() ([]byte, error)
+	Fetch    func() ([]byte, error)
+	TryFetch func() ([]byte, error)
 }
 
 func NewBuffer(r io.Reader) *Buffer {
@@ -20,9 +20,9 @@ func NewBuffer(r io.Reader) *Buffer {
 		allocSize: 8,
 	}
 	return &Buffer{
-		Storage:      newStorage(),
-		Fetch:        f.fetch,
-		TryFetchFunc: f.fetch,
+		Storage:  newStorage(),
+		Fetch:    f.fetch,
+		TryFetch: f.fetch,
 	}
 }
 
@@ -33,7 +33,7 @@ func (b *Buffer) fetchAndStore() error {
 }
 
 func (b *Buffer) tryFetchAndStore() error {
-	data, err := b.TryFetchFunc()
+	data, err := b.TryFetch()
 	b.Store(data, err)
 	return err
 }
