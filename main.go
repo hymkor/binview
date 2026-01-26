@@ -352,10 +352,16 @@ func Run(args []string) error {
 	}
 	defer app.Close()
 
-	keyWorker := nonblock.New(app.tty1.GetKey, app.buffer.FetchOnly)
+	// nonblock runs data reading in the background while waiting for key input.
+	// If Fetch is called directly, it may run concurrently and also bypass
+	// buffered data already queued in keyWorker, which can break data order.
+	//
+	// Therefore, all reads are centralized in keyWorker, and this goroutine
+	// accesses data only via keyWorker.Fetch / TryFetch.
+	keyWorker := nonblock.New(app.tty1.GetKey, app.buffer.Fetch)
 	defer keyWorker.Close()
-	app.buffer.CustomFetch = keyWorker.Fetch
-	app.buffer.CustomTryFetch = func() ([]byte, error) {
+	app.buffer.Fetch = keyWorker.Fetch
+	app.buffer.TryFetch = func() ([]byte, error) {
 		return keyWorker.TryFetch(time.Second / 100)
 	}
 
@@ -394,7 +400,7 @@ func Run(args []string) error {
 		displayUpdateTime := time.Now().Add(time.Second / interval)
 
 		ch, err := keyWorker.GetOr(func(data []byte, err error) (cont bool) {
-			cont = app.buffer.StoreOnly(data, err)
+			cont = app.buffer.Store(data, err)
 			if app.message != "" {
 				return
 			}
