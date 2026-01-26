@@ -23,7 +23,7 @@ func (b *Storage) Len() int64 {
 	return b.allsize
 }
 
-func (b *Storage) StoreOnly(data []byte, err error) bool {
+func (b *Storage) Store(data []byte, err error) bool {
 	if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, os.ErrDeadlineExceeded) {
 		return false
 	}

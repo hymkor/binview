@@ -394,7 +394,7 @@ func Run(args []string) error {
 		displayUpdateTime := time.Now().Add(time.Second / interval)
 
 		ch, err := keyWorker.GetOr(func(data []byte, err error) (cont bool) {
-			cont = app.buffer.StoreOnly(data, err)
+			cont = app.buffer.Store(data, err)
 			if app.message != "" {
 				return
 			}

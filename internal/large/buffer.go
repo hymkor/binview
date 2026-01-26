@@ -28,13 +28,13 @@ func NewBuffer(r io.Reader) *Buffer {
 
 func (b *Buffer) fetchAndStore() error {
 	data, err := b.FetchFunc()
-	b.StoreOnly(data, err)
+	b.Store(data, err)
 	return err
 }
 
 func (b *Buffer) tryFetch() error {
 	data, err := b.TryFetchFunc()
-	b.StoreOnly(data, err)
+	b.Store(data, err)
 	return err
 }
 
