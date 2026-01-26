@@ -352,6 +352,12 @@ func Run(args []string) error {
 	}
 	defer app.Close()
 
+	// nonblock runs data reading in the background while waiting for key input.
+	// If Fetch is called directly, it may run concurrently and also bypass
+	// buffered data already queued in keyWorker, which can break data order.
+	//
+	// Therefore, all reads are centralized in keyWorker, and this goroutine
+	// accesses data only via keyWorker.Fetch / TryFetch.
 	keyWorker := nonblock.New(app.tty1.GetKey, app.buffer.Fetch)
 	defer keyWorker.Close()
 	app.buffer.Fetch = keyWorker.Fetch
