@@ -32,7 +32,7 @@ func (b *Buffer) fetchAndStore() error {
 	return err
 }
 
-func (b *Buffer) tryFetch() error {
+func (b *Buffer) tryFetchAndStore() error {
 	data, err := b.TryFetchFunc()
 	b.Store(data, err)
 	return err

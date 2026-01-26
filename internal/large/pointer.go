@@ -89,7 +89,7 @@ func (p *Pointer) Skip(n int64) error {
 		}
 		nextElement := p.element.Next()
 		if nextElement == nil {
-			if err := p.buffer.tryFetch(); err != nil {
+			if err := p.buffer.tryFetchAndStore(); err != nil {
 				// move cursor the end of the current block
 				moveBytes := len(p.element.Value.(chunk)) - p.offset - 1
 				p.offset += moveBytes
