@@ -1,7 +1,6 @@
 package large
 
 import (
-	"container/list"
 	"errors"
 	"io"
 	"os"
@@ -10,8 +9,7 @@ import (
 type _Block = []byte
 
 type Buffer struct {
-	lines        *list.List
-	allsize      int64
+	*Storage
 	FetchFunc    func() ([]byte, error)
 	TryFetchFunc func() ([]byte, error)
 }
@@ -22,26 +20,10 @@ func NewBuffer(r io.Reader) *Buffer {
 		allocSize: 8,
 	}
 	return &Buffer{
-		lines:        list.New(),
-		allsize:      0,
+		Storage:      newStorage(),
 		FetchFunc:    f.FetchOnly,
 		TryFetchFunc: f.FetchOnly,
 	}
-}
-
-func (b *Buffer) Len() int64 {
-	return b.allsize
-}
-
-func (b *Buffer) StoreOnly(data []byte, err error) bool {
-	if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, os.ErrDeadlineExceeded) {
-		return false
-	}
-	if len(data) > 0 {
-		b.lines.PushBack(_Block(data))
-		b.allsize += int64(len(data))
-	}
-	return !errors.Is(err, os.ErrDeadlineExceeded)
 }
 
 func (b *Buffer) Fetch() error {
