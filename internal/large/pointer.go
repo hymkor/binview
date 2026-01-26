@@ -22,7 +22,7 @@ func (p *Pointer) Address() int64 { return p.address }
 func NewPointer(b *Buffer) *Pointer {
 	element := b.lines.Front()
 	if element == nil {
-		if err := b.Fetch(); err != nil && err != io.EOF {
+		if err := b.fetchAndStore(); err != nil && err != io.EOF {
 			return nil
 		}
 		element = b.lines.Front()

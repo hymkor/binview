@@ -26,7 +26,7 @@ func NewBuffer(r io.Reader) *Buffer {
 	}
 }
 
-func (b *Buffer) Fetch() error {
+func (b *Buffer) fetchAndStore() error {
 	data, err := b.FetchFunc()
 	b.StoreOnly(data, err)
 	return err
@@ -40,7 +40,7 @@ func (b *Buffer) tryFetch() error {
 
 func (b *Buffer) ReadAll() error {
 	for {
-		err := b.Fetch()
+		err := b.fetchAndStore()
 		if err != nil && !errors.Is(err, os.ErrDeadlineExceeded) {
 			if errors.Is(err, io.EOF) {
 				return nil
