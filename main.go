@@ -352,9 +352,9 @@ func Run(args []string) error {
 	}
 	defer app.Close()
 
-	keyWorker := nonblock.New(app.tty1.GetKey, app.buffer.FetchFunc)
+	keyWorker := nonblock.New(app.tty1.GetKey, app.buffer.Fetch)
 	defer keyWorker.Close()
-	app.buffer.FetchFunc = keyWorker.Fetch
+	app.buffer.Fetch = keyWorker.Fetch
 	app.buffer.TryFetchFunc = func() ([]byte, error) {
 		return keyWorker.TryFetch(time.Second / 100)
 	}
