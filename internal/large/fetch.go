@@ -13,7 +13,7 @@ type bufferFetch struct {
 	allocSize int
 }
 
-func (b *bufferFetch) FetchOnly() ([]byte, error) {
+func (b *bufferFetch) fetch() ([]byte, error) {
 	if b.reader == nil {
 		return nil, io.EOF
 	}

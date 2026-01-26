@@ -21,8 +21,8 @@ func NewBuffer(r io.Reader) *Buffer {
 	}
 	return &Buffer{
 		Storage:      newStorage(),
-		FetchFunc:    f.FetchOnly,
-		TryFetchFunc: f.FetchOnly,
+		FetchFunc:    f.fetch,
+		TryFetchFunc: f.fetch,
 	}
 }
 
