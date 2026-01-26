@@ -28,7 +28,7 @@ func (b *Storage) Store(data []byte, err error) bool {
 		return false
 	}
 	if len(data) > 0 {
-		b.lines.PushBack(_Block(data))
+		b.lines.PushBack(chunk(data))
 		b.allsize += int64(len(data))
 	}
 	return !errors.Is(err, os.ErrDeadlineExceeded)

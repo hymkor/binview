@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-type _Block = []byte
+type chunk = []byte
 
 type Buffer struct {
 	*Storage
@@ -56,7 +56,7 @@ func (b *Buffer) WriteTo(w io.Writer) (int64, error) {
 	}
 	n := int64(0)
 	for p := b.lines.Front(); p != nil; p = p.Next() {
-		m, err := w.Write(p.Value.(_Block))
+		m, err := w.Write(p.Value.(chunk))
 		n += int64(m)
 		if err != nil {
 			return n, err
