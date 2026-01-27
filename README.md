@@ -90,7 +90,7 @@ $ cat FILE | bine
 Key-binding
 -----------
 
-* `q`, `ESCAPE`  
+* `q`  
     * Quit
 * `h`, `BACKSPACE`, `ARROW-LEFT`, `Ctrl-B`  
     * Move the cursor left

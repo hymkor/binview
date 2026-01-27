@@ -211,6 +211,10 @@ type Application struct {
 	cache        map[int]string
 	encoding     encoding.Encoding
 	undoFuncs    []func(app *Application)
+
+	// Some terminals may split escape sequences (e.g. ESC + '[' + 'D').
+	// To avoid misinterpreting partial input, we buffer prefix keys here.
+	pendingEscape string
 }
 
 func (app *Application) dataHeight() int {
@@ -358,7 +362,13 @@ func Run(args []string) error {
 	//
 	// Therefore, all reads are centralized in keyWorker, and this goroutine
 	// accesses data only via keyWorker.Fetch / TryFetch.
-	keyWorker := nonblock.New(app.tty1.GetKey, app.buffer.Fetch)
+
+	keyWorker := nonblock.New(func() (string, error) {
+		ch, err := app.tty1.GetKey()
+		ch = app.pendingEscape + ch
+		app.pendingEscape = ""
+		return ch, err
+	}, app.buffer.Fetch)
 	defer keyWorker.Close()
 	app.buffer.Fetch = keyWorker.Fetch
 	app.buffer.TryFetch = func() ([]byte, error) {
