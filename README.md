@@ -126,13 +126,13 @@ Key-binding
     * Write changes to file
 * `&`  
     * Jump to a specific address
-* `ALT-U`  
+* `ALT-U`, `Esc-U`  
     * Change the character encoding to UTF-8 (default)
-* `ALT-A`  
+* `ALT-A`, `Esc-A`  
     * Change the character encoding to ANSI (the current Windows code page)
-* `ALT-L`  
+* `ALT-L`, `Esc-L`  
     * Change the character encoding to UTF-16LE
-* `ALT-B`  
+* `ALT-B`, `Esc-B`  
     * Change the character encoding to UTF-16BE
 
 Release Notes
