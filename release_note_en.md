@@ -10,6 +10,7 @@ Release notes
 - Echo the `y` input to the screen during overwrite confirmation. (#17)
 - Display a text animation while waiting for a save operation to complete. (#17)
 - When executing the `q` command, prompt whether to save the changes (#18)
+- Changed the `Esc` key from application exit to a prefix-only key to prevent unintended behavior caused by split input sequences. (#21)
 
 v0.6.3
 ------
