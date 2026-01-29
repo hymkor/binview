@@ -370,17 +370,7 @@ func keyFuncUndo(app *Application) error {
 	return nil
 }
 
-func keyPending(s string) func(app *Application) error {
-	return func(app *Application) error {
-		app.pendingEscape = s
-		app.message = fmt.Sprintf("%#v", s)
-		return nil
-	}
-}
-
 var jumpTable = map[string]func(this *Application) error{
-	"\x1B":      keyPending("\x1B"),
-	"\x1B[":     keyPending("\x1B["),
 	"u":         keyFuncUndo,
 	"i":         keyFuncInsertExp,
 	"a":         keyFuncAppendExp,
